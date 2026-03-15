@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ОБЩИЕ / СИСТЕМНЫЕ -->
+    <string name="app_name">МПУМУМПОС</string>
+    <string name="page_title_main">Мобильное приложение для управления модульным устройством мониторинга параметров окружающей среды</string>
+    <string name="default_interval"></string>
+    <string name="default_start_time"></string>
+    <string name="placeholder_time"></string>
+
+    <!-- MAINACTIVITY -->
+    <!-- Элементы интерфейса -->
+    <string name="connect_device">ПОДКЛЮЧИТЬ УСТРОЙСТВО</string>
+    <string name="disconnect_device">ОТКЛЮЧИТЬ УСТРОЙСТВО</string>
+    <string name="device_not_connected">Устройство не подключено</string>
+    <string name="device_connected">Устройство подключено</string>
+    <string name="interval_label">Интервал</string>
+    <string name="start_time_label">Время старта</string>
+    <string name="device_time_label">Текущее время</string>
+    <string name="device_name_label">Название устройства</string>
+    <string name="button_edit">ИЗМЕНИТЬ ИНТЕРВАЛ И ВРЕМЯ СТАРТА</string>
+    <string name="button_confirm">ПОДТВЕРДИТЬ ИЗМЕНЕНИЯ</string>
+    <string name="button_sync_time">СИНХРОНИЗИРОВАТЬ ТЕКУЩЕЕ ВРЕМЯ</string>
+    <string name="download_archive">СКАЧАТЬ ДАННЫЕ В АРХИВ</string>
+
+    <!-- LOGACTIVITY -->
+    <string name="log_label">Лог операций</string>
+    <string name="clear_logs">Очистить\nлоги</string>
+    <string name="copy_logs">Скопировать\nлоги</string>
+
+    <!-- DEVICELISTACTIVITY -->
+    <string name="select_device">Выберите Bluetooth устройство</string>
+    <string name="refresh_list">Обновить список</string>
+    <string name="no_devices_found">Не найдено Bluetooth устройств</string>
+    <string name="unknown_device">Неизвестное устройство</string>
+    <string name="bluetooth_enabled">Bluetooth включен</string>
+    <string name="bluetooth_required">Bluetooth должен быть включен</string>
+    <string name="permissions_granted">Разрешения получены</string>
+    <string name="permissions_required">Нужны разрешения для работы с Bluetooth</string>
+    <string name="device_not_found">Устройство не найдено</string>
+    <string name="connected_to">Подключено к: %s</string>
+    <string name="disconnected">Устройство отключено</string>
+    <string name="connection_error">Ошибка подключения: %s</string>
+    <string name="time_synced">Время синхронизировано: %s</string>
+    <string name="data_received">Данные загружены</string>
+    <string name="device_error">Ошибка устройства</string>
+    <string name="command_sent">Команда отправлена</string>
+
+    <!-- DIALOG MANAGER -->
+    <!-- Диалог подтверждения изменений -->
+    <string name="dialog_title_confirm_changes">Подтвердить изменения?</string>
+    <string name="dialog_message_confirm_changes">Нажмите «ПОДТВЕРДИТЬ», чтобы сохранить изменения значений интервала и времени старта, или нажмите «ОТМЕНА», чтобы откатить изменения значений</string>
+    
+    <!-- Диалог синхронизации времени -->
+    <string name="dialog_title_sync_time">Синхронизировать текущее время?</string>
+    
+    <!-- Диалог выбора времени старта (пикер) -->
+    <string name="dialog_title_select_time">Выберите время старта</string>
+    <string name="dialog_message_send_time">Отправить на устройство время:\n%1$s</string>
+    
+    <!-- Диалог очистки логов -->
+    <string name="dialog_title_clear_logs">Очистить логи?</string>
+    <string name="dialog_message_clear_logs">Вы уверены, что хотите очистить все логи?</string>
+    
+    <!-- Кнопки диалогов -->
+    <string name="dialog_button_confirm">Подтвердить</string>
+    <string name="dialog_button_cancel">Отмена</string>
+
+    <!-- TOAST -->
+    <!-- Общие тосты -->
+    <string name="toast_error_start">Ошибка запуска</string>
+    
+    <!-- Bluetooth тосты -->
+    <string name="toast_permissions_needed">Нужны разрешения для доступа к Bluetooth</string>
+    <string name="toast_bluetooth_disabled">Bluetooth должен быть включен</string>
+    <string name="toast_connect_first">Сначала подключитесь к устройству</string>
+    <string name="toast_connect_first_short">Сначала подключитесь</string>
+    <string name="toast_bluetooth_not_supported">Bluetooth не поддерживается</string>
+    <string name="toast_bluetooth_access_error">Ошибка доступа к Bluetooth</string>
+    <string name="toast_enable_bluetooth">Включите Bluetooth</string>
+    <string name="toast_bluetooth_not_supported_device_list">Bluetooth не поддерживается</string>
+    
+    <!-- Устройство тосты -->
+    <string name="toast_error_opening_list">Ошибка открытия списка</string>
+    <string name="toast_device_not_found">Устройство не найдено</string>
+    <string name="toast_connected">Подключено к устройству</string>
+    <string name="toast_connection_error">Ошибка подключения: %1$s</string>
+    <string name="toast_device_disconnected">Устройство отключено</string>
+    <string name="toast_no_paired_devices">Не найдено сопряженных устройств</string>
+    <string name="toast_found_devices">Найдено устройств: %1$d</string>
+    <string name="toast_permission_error">Ошибка доступа к Bluetooth. Проверьте разрешения</string>
+    <string name="toast_error_loading_devices">Ошибка загрузки устройств: %1$s</string>
+    <string name="toast_activity_error">Ошибка создания активности</string>
+    
+    <!-- Данные и команды тосты -->
+    <string name="toast_interval_set">Интервал установлен: %1$s мин</string>
+    <string name="toast_start_time_set">Время старта установлено: %1$s</string>
+    <string name="toast_command_executed">Команда выполнена</string>
+    <string name="toast_command_send_error">Ошибка отправки команды</string>
+    <string name="toast_no_data">Данные отсутствуют</string>
+    <string name="toast_data_received">Данные получены (%1$d символов)</string>
+    <string name="toast_time_synced">Время синхронизировано: %1$s</string>
+    <string name="toast_press_field">Нажмите на поле ввода для изменения значения</string>
+
+    <!-- Логи тосты -->
+    <string name="toast_logs_cleared">Логи очищены</string>
+    <string name="toast_log_copied">Лог скопирован в буфер обмена</string>
+</resources>
