@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MobileApp"
+rootProject.name = "MPUMUMPOS"
 include(":app")

@@ -8,7 +8,7 @@ android {
     compileSdk = 34  // ИЗМЕНИЛИ с 33 на 34
 
     defaultConfig {
-        applicationId = "com.mobileapp"
+        applicationId = "com.mpumumpos"
         minSdk = 21
         targetSdk = 33  // Оставляем 33 для совместимости
         versionCode = 1
