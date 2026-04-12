@@ -14,7 +14,7 @@ import java.io.OutputStream
 import java.util.UUID
 
 @SuppressLint("MissingPermission")
-class BluetoothManager(
+class BluetoothManager private constructor(
     private val handler: Handler,
     private val onConnected: (BluetoothDevice) -> Unit,
     private val onDisconnected: () -> Unit,
@@ -24,6 +24,50 @@ class BluetoothManager(
     companion object {
         private const val TAG = "BluetoothManager"
         private val HC05_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        
+        @Volatile
+        private var instance: BluetoothManager? = null
+        
+        @Volatile
+        private var sharedHandler: Handler? = null
+        @Volatile
+        private var sharedOnConnected: ((BluetoothDevice) -> Unit)? = null
+        @Volatile
+        private var sharedOnDisconnected: (() -> Unit)? = null
+        @Volatile
+        private var sharedOnMessageReceived: ((String) -> Unit)? = null
+        @Volatile
+        private var sharedOnError: ((String) -> Unit)? = null
+        
+        fun getInstance(
+            handler: Handler,
+            onConnected: (BluetoothDevice) -> Unit,
+            onDisconnected: () -> Unit,
+            onMessageReceived: (String) -> Unit,
+            onError: (String) -> Unit
+        ): BluetoothManager {
+            if (instance == null) {
+                synchronized(this) {
+                    if (instance == null) {
+                        sharedHandler = handler
+                        sharedOnConnected = onConnected
+                        sharedOnDisconnected = onDisconnected
+                        sharedOnMessageReceived = onMessageReceived
+                        sharedOnError = onError
+                        instance = BluetoothManager(handler, onConnected, onDisconnected, onMessageReceived, onError)
+                    }
+                }
+            }
+            return instance!!
+        }
+        
+        fun isInstanceCreated(): Boolean = instance != null
+        
+        fun getExistingInstance(): BluetoothManager? = instance
+        
+        fun clearInstance() {
+            instance = null
+        }
     }
 
     private var bluetoothAdapter: BluetoothAdapter? = null

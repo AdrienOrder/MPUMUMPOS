@@ -298,14 +298,14 @@
                     android:textStyle="bold"
                     style="@style/Widget.MobileApp.Button" />
 
-                <!-- Кнопка скачивания данных в архив - НЕАКТИВНА (фон синий, текст серый) -->
+                <!-- Кнопка скачивания данных из хранилища - НЕАКТИВНА (фон синий, текст серый) -->
                 <Button
-                    android:id="@+id/btnDownloadArchive"
+                    android:id="@+id/btnDownloadStorage"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:background="@drawable/button_background"
                     android:enabled="false"
-                    android:text="@string/download_archive"
+                    android:text="@string/download_storage"
                     android:textAllCaps="false"
                     android:textColor="@color/gray_500"
                     android:textSize="16sp"
@@ -356,9 +356,8 @@
             android:layout_weight="1"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Файлы"
-            android:enabled="false"
             android:src="@android:drawable/ic_menu_save"
-            android:tint="@color/gray_500" />
+            android:tint="@color/white" />
 
     </LinearLayout>
 

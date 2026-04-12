@@ -32,6 +32,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -50,6 +51,36 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".StorageActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".FileListActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".StorageActivity" />
+
+        <activity
+            android:name=".VisualizationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".FileListActivity" />
+
+        <activity
+            android:name=".ChartActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".VisualizationActivity" />
+
+        <activity
+            android:name=".TableActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".VisualizationActivity" />
 
     </application>
 </manifest>

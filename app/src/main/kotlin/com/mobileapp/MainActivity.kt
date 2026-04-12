@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnEditParams: Button
     private lateinit var deviceTimeText: TextView
     private lateinit var btnSyncTime: Button
-    private lateinit var btnDownloadArchive: Button
+    private lateinit var btnDownloadStorage: Button
 
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var dialogManager: DialogManager
@@ -125,9 +125,13 @@ class MainActivity : AppCompatActivity() {
             initHiddenViews()
             initManagers()
             setupUI()
-            updateUIState(false) // Устанавливаем начальное состояние (не подключено)
+            
+            // Проверяем реальное состояние подключения
+            val wasConnected = bluetoothManager.isConnected()
+            updateUIState(wasConnected)
+            
             LogStorageManager.logMessage("Приложение запущено")
-            Log.d(TAG, "onCreate завершен успешно")
+            Log.d(TAG, "onCreate завершен успешно, wasConnected: $wasConnected")
         } catch (e: Exception) {
             Log.e(TAG, "Ошибка в onCreate: ${e.message}", e)
             Toast.makeText(this, R.string.toast_error_start, Toast.LENGTH_LONG).show()
@@ -143,7 +147,7 @@ class MainActivity : AppCompatActivity() {
         btnEditParams = findViewById(R.id.btnEditParams)
         deviceTimeText = findViewById(R.id.tvDeviceTime)
         btnSyncTime = findViewById(R.id.btnSyncTime)
-        btnDownloadArchive = findViewById(R.id.btnDownloadArchive)
+        btnDownloadStorage = findViewById(R.id.btnDownloadStorage)
     }
 
     // Views to hide/show
@@ -164,30 +168,33 @@ class MainActivity : AppCompatActivity() {
     private fun initManagers() {
         dialogManager = DialogManager(this)
 
-        bluetoothManager = BluetoothManager(
-            handler = handler,
-            onConnected = { device ->
-                updateUIState(true)
-                LogStorageManager.logMessage("Подключено к устройству: ${device.name}")
-                // Запрашиваем текущие настройки с устройства при подключении
-                requestDeviceSettings()
-            },
-            onDisconnected = {
-                updateUIState(false)
-                LogStorageManager.logMessage("Устройство отключено")
-                Toast.makeText(this, "Соединение с устройством потеряно", Toast.LENGTH_LONG).show()
-            },
-            onMessageReceived = { response ->
-                processResponse(response)
-            },
-            onError = { error ->
-                LogStorageManager.logMessage("Ошибка Bluetooth: $error")
-                // Показываем Toast только для критических ошибок, не для ошибок чтения
-                if (!error.contains("Ошибка чтения")) {
-                    Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+        // Используем синглтон для сохранения соединения при навигации
+        if (BluetoothManager.isInstanceCreated()) {
+            bluetoothManager = BluetoothManager.getExistingInstance()!!
+        } else {
+            bluetoothManager = BluetoothManager.getInstance(
+                handler = handler,
+                onConnected = { device ->
+                    updateUIState(true)
+                    LogStorageManager.logMessage("Подключено к устройству: ${device.name}")
+                    requestDeviceSettings()
+                },
+                onDisconnected = {
+                    updateUIState(false)
+                    LogStorageManager.logMessage("Устройство отключено")
+                    Toast.makeText(this, "Соединение с устройством потеряно", Toast.LENGTH_LONG).show()
+                },
+                onMessageReceived = { response ->
+                    processResponse(response)
+                },
+                onError = { error ->
+                    LogStorageManager.logMessage("Ошибка Bluetooth: $error")
+                    if (!error.contains("Ошибка чтения")) {
+                        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                    }
                 }
-            }
-        )
+            )
+        }
 
         LogStorageManager.setUpdateListener {
             // Update LogActivity if needed
@@ -287,17 +294,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        btnDownloadArchive.setOnClickListener {
+        btnDownloadStorage.setOnClickListener {
             Toast.makeText(this, "Функциональность пока не реализована (реальное устройство не существует)", Toast.LENGTH_SHORT).show()
-            LogStorageManager.logMessage("Кнопка СКАЧАТЬ ДАННЫЕ В АРХИВ пока неактивна - реальное устройство не существует")
+            LogStorageManager.logMessage("Кнопка СКАЧАТЬ ДАННЫЕ ИЗ ХРАНИЛИЩА пока неактивна - реальное устройство не существует")
         }
 
         findViewById<ImageButton>(R.id.btnLogs).setOnClickListener {
-            startActivity(Intent(this, LogDisplayActivity::class.java))
+            startActivity(Intent(this, LogDisplayActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
         }
 
         findViewById<ImageButton>(R.id.btnHome).setOnClickListener {
             // Уже на главном экране
+        }
+
+        findViewById<ImageButton>(R.id.btnFiles).setOnClickListener {
+            startActivity(Intent(this, StorageActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
         }
 
         setControlButtonsEnabled(false)
@@ -306,7 +321,8 @@ class MainActivity : AppCompatActivity() {
     private fun setControlButtonsEnabled(enabled: Boolean) {
         btnEditParams.isEnabled = enabled
         btnSyncTime.isEnabled = enabled
-        // btnDownloadArchive оставлен выключенным - функциональность пока не реализована
+        btnDownloadStorage.isEnabled = enabled
+        // btnDownloadStorage оставлен выключенным - функциональность пока не реализована
     }
 
     private fun updateUIState(connected: Boolean) {
@@ -461,6 +477,11 @@ class MainActivity : AppCompatActivity() {
         val currentTime = SimpleDateFormat("HH:mm dd.MM.yyyy", Locale.getDefault()).format(Date())
         bluetoothManager.sendCommand(CMD_SET_TIME + currentTime)
         LogStorageManager.logMessage("Время синхронизировано: $currentTime")
+        
+        // Запрашиваем подтверждение времени после синхронизации
+        handler.postDelayed({
+            bluetoothManager.sendCommand(CMD_GET_TIME)
+        }, 500)
     }
 
     private fun processResponse(response: String) {
@@ -589,6 +610,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        bluetoothManager.disconnect()
+        // Не отключаем Bluetooth при навигации - соединение сохраняется через синглтон
+    }
+    
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        // Обновляем UI при возврате на главный экран
+        val wasConnected = bluetoothManager.isConnected()
+        updateUIState(wasConnected)
+        Log.d(TAG, "onNewIntent, wasConnected: $wasConnected")
     }
 }

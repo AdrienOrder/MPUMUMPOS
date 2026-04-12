@@ -14,8 +14,18 @@
     <color name="disconnected_red">#F44336</color>
     <color name="warning_orange">#FF9800</color>
 
-    <!-- Colors for Launcher Icon -->
+<!-- Colors for Launcher Icon -->
     <color name="ic_background_start">#0D47A1</color>
     <color name="ic_background_end">#1E88E5</color>
-    <color name="ic_foreground">#FFFFFF</color>
+    <color name="ic_foreground">#FFFFFFFF</color>
+
+    <!-- Chart colors -->
+    <color name="chart_line_1">#E91E63</color>
+    <color name="chart_line_2">#2196F3</color>
+    <color name="chart_line_3">#4CAF50</color>
+    <color name="chart_line_4">#FF9800</color>
+    <color name="chart_line_5">#9C27B0</color>
+    <color name="chart_line_6">#00BCD4</color>
+    <color name="chart_line_7">#795548</color>
+    <color name="chart_line_8">#607D8B</color>
 </resources>

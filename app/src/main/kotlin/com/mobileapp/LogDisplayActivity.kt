@@ -3,6 +3,7 @@ package com.mobileapp
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -75,7 +76,15 @@ class LogDisplayActivity : AppCompatActivity() {
         }
 
         findViewById<ImageButton>(R.id.btnHome)?.setOnClickListener {
-            finish()
+            startActivity(Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
+        }
+
+        findViewById<ImageButton>(R.id.btnFiles)?.setOnClickListener {
+            startActivity(Intent(this, StorageActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
         }
     }
 

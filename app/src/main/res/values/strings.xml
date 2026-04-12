@@ -20,7 +20,7 @@
     <string name="button_edit">ИЗМЕНИТЬ ИНТЕРВАЛ И ВРЕМЯ СТАРТА</string>
     <string name="button_confirm">ПОДТВЕРДИТЬ ИЗМЕНЕНИЯ</string>
     <string name="button_sync_time">СИНХРОНИЗИРОВАТЬ ТЕКУЩЕЕ ВРЕМЯ</string>
-    <string name="download_archive">СКАЧАТЬ ДАННЫЕ В АРХИВ</string>
+    <string name="download_storage">СКАЧАТЬ ДАННЫЕ В ХРАНИЛИЩЕ</string>
 
     <!-- LOGACTIVITY -->
     <string name="log_label">Лог операций</string>
@@ -104,4 +104,33 @@
     <!-- Логи тосты -->
     <string name="toast_logs_cleared">Логи очищены</string>
     <string name="toast_log_copied">Лог скопирован в буфер обмена</string>
+
+    <!-- STORAGE SCREEN -->
+    <string name="storage_title">Хранилище</string>
+    <string name="storage_no_devices">Нет сохранённых устройств</string>
+    <string name="storage_files_count">Файлов: %d</string>
+    <string name="storage_import_csv">Импорт из Загрузок</string>
+    <string name="storage_delete_confirm">Удалить устройство и все файлы?</string>
+    <string name="storage_imported">Файл импортирован</string>
+    <string name="storage_no_csv_files">Нет CSV файлов</string>
+
+    <!-- FILE LIST SCREEN -->
+    <string name="file_list_title">Файлы</string>
+    <string name="file_size">Размер: %s</string>
+    <string name="file_download">Скачать</string>
+    <string name="file_visualize">График</string>
+    <string name="file_delete">Удалить</string>
+    <string name="file_deleted">Файл удалён</string>
+    <string name="file_downloaded">Файл скачан в Загрузки</string>
+
+    <!-- VISUALIZATION SCREEN -->
+    <string name="viz_title">Визуализация</string>
+    <string name="viz_select_params">Выберите параметры</string>
+    <string name="viz_show_chart">Показать график</string>
+    <string name="viz_no_data">Нет данных для графика</string>
+    <string name="viz_time_range">Период</string>
+    <string name="viz_from">От:</string>
+    <string name="viz_to">До:</string>
+    <string name="viz_apply">Применить</string>
+    <string name="viz_clear_filter">Очистить фильтр</string>
 </resources>

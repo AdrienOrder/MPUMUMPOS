@@ -54,13 +54,12 @@
                     android:layout_height="60dp"
                     android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:background="@drawable/button_background_rounded"
+                    android:background="@drawable/button_delete_red"
                     android:text="@string/clear_logs"
                     android:textAllCaps="false"
                     android:textColor="@color/white"
                     android:textSize="14sp"
-                    android:maxLines="2"
-                    style="@style/Widget.MobileApp.Button" />
+                    android:maxLines="2" />
 
                 <Button
                     android:id="@+id/btnCopy"
@@ -146,9 +145,8 @@
             android:layout_weight="1"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Файлы"
-            android:enabled="false"
             android:src="@android:drawable/ic_menu_save"
-            android:tint="@color/gray_500" />
+            android:tint="@color/white" />
 
     </LinearLayout>
 
