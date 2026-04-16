@@ -1,18 +1,21 @@
 package com.mobileapp
 
+import android.content.pm.ActivityInfo
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.LimitLine
+import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.mobileapp.data.CsvDataParser
-import com.mobileapp.data.CsvFileInfo
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -20,6 +23,9 @@ import java.util.Locale
 class ChartActivity : AppCompatActivity() {
 
     companion object {
+        private const val PREFS_NAME = "chart_prefs"
+        private const val KEY_LANDSCAPE = "is_landscape"
+        
         private val CHART_COLORS = listOf(
             0xFFE91E63.toInt(), 0xFF2196F3.toInt(), 0xFF4CAF50.toInt(),
             0xFFFF9800.toInt(), 0xFF9C27B0.toInt(), 0xFF00BCD4.toInt(),
@@ -30,6 +36,8 @@ class ChartActivity : AppCompatActivity() {
         const val EXTRA_SELECTED_PARAMS = "selected_params"
         const val EXTRA_FROM_DATE = "from_date"
         const val EXTRA_TO_DATE = "to_date"
+        const val EXTRA_CHART_VERTICAL = "chart_vertical"
+        const val EXTRA_PARAM_BOUNDS = "param_bounds"
     }
 
     private lateinit var chart: LineChart
@@ -38,28 +46,67 @@ class ChartActivity : AppCompatActivity() {
     private var selectedParams: List<String> = emptyList()
     private var fromTimestamp: Long = 0
     private var toTimestamp: Long = 0
+    private var chartIsVertical: Boolean = false
+    private var isLandscape: Boolean = false
+    private var paramBounds: Map<String, Pair<Double?, Double?>> = emptyMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        isLandscape = prefs.getBoolean(KEY_LANDSCAPE, false)
+        
         setContentView(R.layout.activity_chart)
+        setRequestedOrientation(if (isLandscape) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
         
         filePath = intent.getStringExtra(EXTRA_FILE_PATH) ?: ""
         fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: ""
         selectedParams = intent.getStringArrayListExtra(EXTRA_SELECTED_PARAMS) ?: emptyList()
         fromTimestamp = intent.getLongExtra(EXTRA_FROM_DATE, 0)
         toTimestamp = intent.getLongExtra(EXTRA_TO_DATE, 0)
+        
+        val boundsStr = intent.getStringArrayListExtra(EXTRA_PARAM_BOUNDS)
+        paramBounds = boundsStr?.associate { entry ->
+            val parts = entry.split("=")
+            val paramName = parts[0]
+            val bounds = if (parts.size > 1 && parts[1].isNotEmpty()) {
+                val bParts = parts[1].split(",")
+                val lower = bParts.getOrNull(0)?.toDoubleOrNull()
+                val upper = bParts.getOrNull(1)?.toDoubleOrNull()
+                Pair(lower, upper)
+            } else {
+                Pair(null, null)
+            }
+            paramName to bounds
+        } ?: emptyMap()
 
         LogStorageManager.logMessage("=== ГРАФИК: Открыт файл '$fileName' ===")
         LogStorageManager.logMessage("График: Путь: $filePath")
         LogStorageManager.logMessage("График: Параметры: $selectedParams")
+        LogStorageManager.logMessage("График: Ориентация: ${if (isLandscape) "Горизонтальная" else "Вертикальная"}")
+        LogStorageManager.logMessage("График: Границы: $paramBounds")
         LogStorageManager.logMessage("График: Период: ${formatDate(fromTimestamp)} - ${formatDate(toTimestamp)}")
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { 
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
             LogStorageManager.logMessage("График: Закрытие экрана")
             finish() 
         }
         
+        findViewById<ImageButton>(R.id.btnRotate).setOnClickListener {
+            isLandscape = !isLandscape
+            requestedOrientation = if (isLandscape) {
+                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+            setRequestedOrientation(requestedOrientation)
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
+            LogStorageManager.logMessage("График: Поворот экрана в ${if (isLandscape) "гориз." else "верт."}")
+        }
+        
         chart = findViewById(R.id.chartFull)
+        findViewById<TextView>(R.id.tvTitle).text = "Графики Данных"
         setupChart()
         drawChart()
     }
@@ -106,7 +153,7 @@ class ChartActivity : AppCompatActivity() {
                 setLabelRotationAngle(-90f)
                 labelCount = 10
                 valueFormatter = object : ValueFormatter() {
-                    private val format = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+                    private val format = SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
                     override fun getFormattedValue(value: Float): String {
                         return try { format.format(Date(value.toLong())) } catch (e: Exception) { "" }
                     }
@@ -119,7 +166,6 @@ class ChartActivity : AppCompatActivity() {
                 textColor = Color.DKGRAY
                 textSize = 12f
                 axisMinimum = 0f
-                labelCount = 12
             }
             axisRight.isEnabled = false
             
@@ -138,62 +184,117 @@ class ChartActivity : AppCompatActivity() {
             return
         }
         
-        // Validate period
         if (fromTimestamp > 0 && toTimestamp > 0 && fromTimestamp > toTimestamp) {
-            LogStorageManager.logMessage("График: ОШИБКА - неверный период: ${formatDate(fromTimestamp)} > ${formatDate(toTimestamp)}")
+            LogStorageManager.logMessage("График: ОШИБКА - неверный период")
             return
         }
         
         LogStorageManager.logMessage("График: Период: ${formatDate(fromTimestamp)} - ${formatDate(toTimestamp)}")
-        LogStorageManager.logMessage("График: Построение графика...")
-        LogStorageManager.logMessage("График: Всего точек в файле: ${csvInfo.dataPoints.size}")
+        LogStorageManager.logMessage("График: Построение, ориентация: ${if (isLandscape) "Горизонтальная" else "Вертикальная"}")
+        LogStorageManager.logMessage("График: Всего точек: ${csvInfo.dataPoints.size}")
         
         val dataSets = mutableListOf<LineDataSet>()
-        var colorIndex = 0
         
-        for (param in selectedParams) {
+        for ((index, param) in selectedParams.withIndex()) {
             val entries = mutableListOf<Entry>()
-            var skippedBefore = 0
-            var skippedAfter = 0
+            val breakPoints = mutableListOf<Entry>()
+            var prevValue: Float? = null
+            
             for (point in csvInfo.dataPoints) {
                 val ts = point.timestamp
-                if (fromTimestamp > 0 && ts < fromTimestamp) { skippedBefore++; continue }
-                if (toTimestamp > 0 && ts > toTimestamp) { skippedAfter++; continue }
-                point.values[param]?.let { entries.add(Entry(ts.toFloat(), it.toFloat())) }
+                if (fromTimestamp > 0 && ts < fromTimestamp) continue
+                if (toTimestamp > 0 && ts > toTimestamp) continue
+                point.values[param]?.let { value ->
+                    val entry = Entry(ts.toFloat(), value.toFloat())
+                    entries.add(entry)
+                    
+                    val currVal = value.toFloat()
+                    if (prevValue == null || currVal != prevValue) {
+                        breakPoints.add(entry)
+                    }
+                    prevValue = currVal
+                }
             }
             
             if (entries.isNotEmpty()) {
-                val color = CHART_COLORS[colorIndex % CHART_COLORS.size]
-                val dataSet = LineDataSet(entries, param).apply {
+                val color = CHART_COLORS[index % CHART_COLORS.size]
+                val dataSet = LineDataSet(breakPoints, param).apply {
                     this.color = color
                     lineWidth = 2.5f
-                    setDrawCircles(false)
-                    setDrawCircleHole(false)
-                    setDrawValues(false)
+                    setDrawCircles(true)
+                    circleRadius = 3.5f
+                    setDrawCircleHole(true)
+                    circleHoleRadius = 1.5f
+                    circleColors = listOf(color)
+                    setDrawValues(true)
+                    valueTextColor = color
+                    valueTextSize = 9f
+                    valueFormatter = object : ValueFormatter() {
+                        override fun getFormattedValue(value: Float): String {
+                            return if (value == value.toLong().toFloat()) {
+                                value.toLong().toString()
+                            } else {
+                                String.format("%.1f", value)
+                            }
+                        }
+                    }
                     mode = LineDataSet.Mode.LINEAR
                 }
                 dataSets.add(dataSet)
-                LogStorageManager.logMessage("График: Параметр '$param' - точек: ${entries.size} (пропущено до: $skippedBefore, после: $skippedAfter)")
-                colorIndex++
-            } else {
-                LogStorageManager.logMessage("График: Параметр '$param' - нет данных в периоде")
+                
+                val bounds = paramBounds[param]
+                if (bounds != null) {
+                    LogStorageManager.logMessage("График: $param - ${entries.size} точек, границы: ${bounds.first} - ${bounds.second}")
+                } else {
+                    LogStorageManager.logMessage("График: $param - ${entries.size} точек")
+                }
             }
         }
         
         if (dataSets.isEmpty()) {
-            LogStorageManager.logMessage("График: ОШИБКА - нет данных для отображения в периоде")
+            LogStorageManager.logMessage("График: ОШИБКА - нет данных")
             return
         }
         
-        LogStorageManager.logMessage("График: Построено линий: ${dataSets.size}")
-        
         chart.data = LineData(dataSets.toList())
+        
+        chart.axisLeft.removeAllLimitLines()
+        
+        for ((index, param) in selectedParams.withIndex()) {
+            val bounds = paramBounds[param] ?: continue
+            val (lower, upper) = bounds
+            val color = CHART_COLORS[index % CHART_COLORS.size]
+            
+            lower?.let {
+                val lowerLine = LimitLine(it.toFloat(), "мин $param").apply {
+                    lineColor = color
+                    lineWidth = 1.5f
+                    enableDashedLine(8f, 4f, 0f)
+                    textColor = color
+                    textSize = 10f
+                }
+                chart.axisLeft.addLimitLine(lowerLine)
+                LogStorageManager.logMessage("График: Нижняя граница $param: $it")
+            }
+            
+            upper?.let {
+                val upperLine = LimitLine(it.toFloat(), "макс $param").apply {
+                    lineColor = color
+                    lineWidth = 1.5f
+                    enableDashedLine(8f, 4f, 0f)
+                    textColor = color
+                    textSize = 10f
+                }
+                chart.axisLeft.addLimitLine(upperLine)
+                LogStorageManager.logMessage("График: Верхняя граница $param: $it")
+            }
+        }
         
         val xMin = dataSets.first().xMin
         val xMax = dataSets.first().xMax
         val xRange = xMax - xMin
         
-        LogStorageManager.logMessage("График: Диапазон X: ${formatDate(xMin.toLong())} - ${formatDate(xMax.toLong())}")
+        chart.invalidate()
         
         chart.post {
             chart.setVisibleXRangeMaximum(xRange)
@@ -201,6 +302,6 @@ class ChartActivity : AppCompatActivity() {
             chart.moveViewToX(xMin)
         }
         
-        LogStorageManager.logMessage("График: График построен успешно")
+        LogStorageManager.logMessage("График: Построен успешно")
     }
 }

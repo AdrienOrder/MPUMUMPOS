@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.mobileapp.data.CsvDataParser
 import com.mobileapp.data.CsvFileInfo
+import com.mobileapp.data.ParamBounds
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -20,16 +21,17 @@ class VisualizationActivity : AppCompatActivity() {
     private lateinit var btnFromDate: Button
     private lateinit var btnToDate: Button
     private lateinit var btnShowChart: Button
+    private lateinit var btnShowTable: Button
     private lateinit var btnDay: Button
     private lateinit var btnMonth: Button
     private lateinit var btnYear: Button
-    private lateinit var btnShowTable: Button
 
     private var filePath: String = ""
     private var fileName: String = ""
     private var csvInfo: CsvFileInfo? = null
-    private var selectedParams = mutableSetOf<String>()
+    private var paramBoundsList = mutableListOf<ParamWithBounds>()
     private var paramAdapter: ParamAdapter? = null
+    private var chartIsVertical: Boolean = true
 
     private var fromTimestamp: Long? = null
     private var toTimestamp: Long? = null
@@ -66,13 +68,17 @@ class VisualizationActivity : AppCompatActivity() {
     }
 
     private fun setupParamsList() {
-        paramAdapter = ParamAdapter { param, isChecked ->
-            if (isChecked) {
-                selectedParams.add(param)
-                LogStorageManager.logMessage("Визуализация: Выбран параметр: $param")
-            } else {
-                selectedParams.remove(param)
-                LogStorageManager.logMessage("Визуализация: Снят параметр: $param")
+        paramAdapter = ParamAdapter { param, isChecked, lower, upper ->
+            val pb = paramBoundsList.find { it.name == param }
+            if (pb != null) {
+                pb.isSelected = isChecked
+                pb.lowerBound = lower
+                pb.upperBound = upper
+                if (isChecked) {
+                    LogStorageManager.logMessage("Визуализация: Выбран параметр: $param, границы: $lower - $upper")
+                } else {
+                    LogStorageManager.logMessage("Визуализация: Снят параметр: $param")
+                }
             }
         }
         rvParams.apply {
@@ -219,6 +225,7 @@ class VisualizationActivity : AppCompatActivity() {
 
     private fun setupShowButton() {
         btnShowChart.setOnClickListener {
+            val selectedParams = paramBoundsList.filter { it.isSelected }
             if (selectedParams.isEmpty()) {
                 LogStorageManager.logMessage("Визуализация: ОШИБКА - не выбраны параметры для графика")
                 Toast.makeText(this, R.string.viz_select_params, Toast.LENGTH_SHORT).show()
@@ -229,21 +236,41 @@ class VisualizationActivity : AppCompatActivity() {
                 Toast.makeText(this, "Неверный период", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            
+            for (pb in selectedParams) {
+                if (pb.lowerBound != null && pb.upperBound != null && pb.lowerBound!! >= pb.upperBound!!) {
+                    Toast.makeText(this, "Ошибка: нижняя граница >= верхней для ${pb.name}", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+            }
+            
             LogStorageManager.logMessage("Визуализация: Открытие графика")
-            LogStorageManager.logMessage("Визуализация: Параметры: $selectedParams")
+            LogStorageManager.logMessage("Визуализация: Параметры: ${selectedParams.map { "${it.name}(${it.lowerBound}-${it.upperBound})" }}")
             LogStorageManager.logMessage("Визуализация: Период: ${formatDate(fromTimestamp ?: 0)} - ${formatDate(toTimestamp ?: 0)}")
+            
+            val boundsList = selectedParams.mapNotNull { param ->
+                val lb = param.lowerBound
+                val ub = param.upperBound
+                if (lb != null || ub != null) {
+                    "${param.name}=${lb ?: ""},${ub ?: ""}"
+                } else null
+            }
+            
             startActivity(Intent(this, ChartActivity::class.java).apply {
                 putExtra("file_path", filePath)
                 putExtra("file_name", fileName)
-                putStringArrayListExtra("selected_params", ArrayList(selectedParams))
+                putStringArrayListExtra("selected_params", ArrayList(selectedParams.map { it.name }))
                 putExtra("from_date", fromTimestamp ?: 0)
                 putExtra("to_date", toTimestamp ?: 0)
+                putExtra("chart_vertical", if (chartIsVertical) 1 else 0)
+                putStringArrayListExtra("param_bounds", ArrayList(boundsList))
             })
         }
     }
 
     private fun setupShowTable() {
         btnShowTable.setOnClickListener {
+            val selectedParams = paramBoundsList.filter { it.isSelected }
             if (selectedParams.isEmpty()) {
                 LogStorageManager.logMessage("Визуализация: ОШИБКА - не выбраны параметры для таблицы")
                 Toast.makeText(this, R.string.viz_select_params, Toast.LENGTH_SHORT).show()
@@ -255,12 +282,12 @@ class VisualizationActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             LogStorageManager.logMessage("Визуализация: Открытие таблицы")
-            LogStorageManager.logMessage("Визуализация: Параметры: $selectedParams")
+            LogStorageManager.logMessage("Визуализация: Параметры: ${selectedParams.map { it.name }}")
             LogStorageManager.logMessage("Визуализация: Период: ${formatDate(fromTimestamp ?: 0)} - ${formatDate(toTimestamp ?: 0)}")
             startActivity(Intent(this, TableActivity::class.java).apply {
                 putExtra("file_path", filePath)
                 putExtra("file_name", fileName)
-                putStringArrayListExtra("selected_params", ArrayList(selectedParams))
+                putStringArrayListExtra("selected_params", ArrayList(selectedParams.map { it.name }))
                 putExtra("from_date", fromTimestamp ?: 0)
                 putExtra("to_date", toTimestamp ?: 0)
             })
@@ -344,7 +371,9 @@ class VisualizationActivity : AppCompatActivity() {
         LogStorageManager.logMessage("Визуализация: Строк данных: ${csvInfo!!.dataPoints.size}")
         LogStorageManager.logMessage("Визуализация: Параметры: ${csvInfo!!.dataColumns}")
         
-        paramAdapter?.submitList(csvInfo!!.dataColumns)
+        paramBoundsList = csvInfo!!.dataColumns.map { ParamWithBounds(it) }.toMutableList()
+        paramAdapter?.submitList(paramBoundsList)
+        
         val minTime = csvInfo!!.dataPoints.minOf { it.timestamp }
         val maxTime = csvInfo!!.dataPoints.maxOf { it.timestamp }
         btnFromDate.text = formatDate(minTime)

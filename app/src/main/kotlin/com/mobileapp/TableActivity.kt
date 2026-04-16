@@ -1,5 +1,7 @@
 package com.mobileapp
 
+import android.content.pm.ActivityInfo
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,6 +21,9 @@ import java.util.Locale
 class TableActivity : AppCompatActivity() {
 
     companion object {
+        private const val PREFS_NAME = "table_prefs"
+        private const val KEY_LANDSCAPE = "is_landscape"
+        
         const val EXTRA_FILE_PATH = "file_path"
         const val EXTRA_FILE_NAME = "file_name"
         const val EXTRA_SELECTED_PARAMS = "selected_params"
@@ -34,11 +39,17 @@ class TableActivity : AppCompatActivity() {
     private var selectedParams: List<String> = emptyList()
     private var fromTimestamp: Long = 0
     private var toTimestamp: Long = 0
+    private var isLandscape: Boolean = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        isLandscape = prefs.getBoolean(KEY_LANDSCAPE, false)
+        
         setContentView(R.layout.activity_table)
+        setRequestedOrientation(if (isLandscape) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
 
         filePath = intent.getStringExtra(EXTRA_FILE_PATH) ?: ""
         fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: ""
@@ -52,8 +63,21 @@ class TableActivity : AppCompatActivity() {
         LogStorageManager.logMessage("Таблица: Период: ${formatDate(fromTimestamp)} - ${formatDate(toTimestamp)}")
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { 
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
             LogStorageManager.logMessage("Таблица: Закрытие экрана")
             finish() 
+        }
+        
+        findViewById<ImageButton>(R.id.btnRotate).setOnClickListener {
+            isLandscape = !isLandscape
+            requestedOrientation = if (isLandscape) {
+                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+            setRequestedOrientation(requestedOrientation)
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
+            LogStorageManager.logMessage("Таблица: Поворот экрана в ${if (isLandscape) "гориз." else "верт."}")
         }
         
         tableLayout = findViewById(R.id.tableData)
