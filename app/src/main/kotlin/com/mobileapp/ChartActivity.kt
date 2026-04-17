@@ -2,11 +2,17 @@ package com.mobileapp
 
 import android.content.pm.ActivityInfo
 import android.content.SharedPreferences
+import android.content.Intent
 import android.graphics.Color
+import android.graphics.pdf.PdfDocument
 import android.os.Bundle
+import android.os.Environment
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import java.io.File
+import java.io.FileOutputStream
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.YAxis
@@ -199,6 +205,7 @@ class ChartActivity : AppCompatActivity() {
             val entries = mutableListOf<Entry>()
             val breakPoints = mutableListOf<Entry>()
             var prevValue: Float? = null
+            var lastEntry: Entry? = null
             
             for (point in csvInfo.dataPoints) {
                 val ts = point.timestamp
@@ -207,6 +214,7 @@ class ChartActivity : AppCompatActivity() {
                 point.values[param]?.let { value ->
                     val entry = Entry(ts.toFloat(), value.toFloat())
                     entries.add(entry)
+                    lastEntry = entry
                     
                     val currVal = value.toFloat()
                     if (prevValue == null || currVal != prevValue) {
@@ -214,6 +222,10 @@ class ChartActivity : AppCompatActivity() {
                     }
                     prevValue = currVal
                 }
+            }
+            
+            if (lastEntry != null && !breakPoints.any { it.x == lastEntry.x && it.y == lastEntry.y }) {
+                breakPoints.add(lastEntry)
             }
             
             if (entries.isNotEmpty()) {
@@ -303,5 +315,37 @@ class ChartActivity : AppCompatActivity() {
         }
         
         LogStorageManager.logMessage("График: Построен успешно")
+    }
+    
+    private fun exportToPdf() {
+        try {
+            val pdfDocument = PdfDocument()
+            val pageInfo = PdfDocument.PageInfo.Builder(chart.width, chart.height, 1).create()
+            val page = pdfDocument.startPage(pageInfo)
+            
+            val canvas = page.canvas
+            chart.draw(canvas)
+            
+            pdfDocument.finishPage(page)
+            
+            val fileName = "graph_${System.currentTimeMillis()}.pdf"
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val mpumFolder = File(downloadsDir, "MPUMUMPOS Downloads")
+            if (!mpumFolder.exists()) mpumFolder.mkdirs()
+            val file = File(mpumFolder, fileName)
+            
+            FileOutputStream(file).use { out ->
+                pdfDocument.writeTo(out)
+            }
+            
+            pdfDocument.close()
+            
+            Toast.makeText(this, "Сохранено: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+            LogStorageManager.logMessage("График: PDF сохранен ${file.absolutePath}")
+            
+        } catch (e: Exception) {
+            Toast.makeText(this, "Ошибка сохранения: ${e.message}", Toast.LENGTH_SHORT).show()
+            LogStorageManager.logMessage("График: Ошибка PDF: ${e.message}")
+        }
     }
 }

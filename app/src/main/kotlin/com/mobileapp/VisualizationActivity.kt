@@ -2,6 +2,7 @@ package com.mobileapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.NumberPicker
 import android.widget.TextView
@@ -10,7 +11,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.mobileapp.data.CsvDataParser
 import com.mobileapp.data.CsvFileInfo
+import com.mobileapp.data.Device
 import com.mobileapp.data.ParamBounds
+import com.mobileapp.LogDisplayActivity
+import com.mobileapp.MainActivity
+import com.mobileapp.StorageActivity
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,6 +32,11 @@ class VisualizationActivity : AppCompatActivity() {
     private lateinit var btnDay: Button
     private lateinit var btnMonth: Button
     private lateinit var btnYear: Button
+    private lateinit var btnExportPdf: Button
+    
+    private var selectedDay: Long? = null
+    private var selectedMonth: Long? = null
+    private var selectedYear: Int? = null
 
     private var filePath: String = ""
     private var fileName: String = ""
@@ -59,12 +71,19 @@ class VisualizationActivity : AppCompatActivity() {
         btnToDate = findViewById(R.id.btnToDate)
         btnShowChart = findViewById(R.id.btnShowChart)
         btnShowTable = findViewById(R.id.btnShowTable)
+        btnDay = findViewById(R.id.btnDay)
+        btnMonth = findViewById(R.id.btnMonth)
+        btnYear = findViewById(R.id.btnYear)
+        btnExportPdf = findViewById(R.id.btnExportPdf)
 
         setupParamsList()
         setupDatePickers()
         setupShowButton()
         setupShowTable()
         setupPeriodButtons()
+        setupDayMonthYear()
+        setupPdfExport()
+        setupBottomNavigation()
     }
 
     private fun setupParamsList() {
@@ -383,8 +402,338 @@ class VisualizationActivity : AppCompatActivity() {
         
         LogStorageManager.logMessage("Визуализация: Диапазон дат файла: ${formatDate(minTime)} - ${formatDate(maxTime)}")
     }
+    
+    private fun setupDayMonthYear() {
+        btnDay.setOnClickListener {
+            val csvInfo = this.csvInfo ?: return@setOnClickListener
+            val dayFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+            val uniqueDays = csvInfo.dataPoints
+                .map { dayFormat.format(Date(it.timestamp)) }
+                .distinct()
+                .sortedByDescending { it }
+            
+            if (uniqueDays.isEmpty()) {
+                Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            
+            showSelectionDialog("Выберите день", uniqueDays) { selected ->
+                selectedDay = dayFormat.parse(selected)?.time
+                clearPeriodSelections()
+                applyDaySelection(selected)
+            }
+        }
+        
+        btnMonth.setOnClickListener {
+            val csvInfo = this.csvInfo ?: return@setOnClickListener
+            val monthFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
+            val uniqueMonths = csvInfo.dataPoints
+                .map { monthFormat.format(Date(it.timestamp)) }
+                .distinct()
+                .sortedByDescending { it }
+            
+            if (uniqueMonths.isEmpty()) {
+                Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            
+            showSelectionDialog("Выберите месяц", uniqueMonths) { selected ->
+                val parseFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
+                selectedMonth = parseFormat.parse(selected)?.time
+                clearPeriodSelections()
+                applyMonthSelection(selected)
+            }
+        }
+        
+        btnYear.setOnClickListener {
+            val csvInfo = this.csvInfo ?: return@setOnClickListener
+            val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+            val uniqueYears = csvInfo.dataPoints
+                .map { yearFormat.format(Date(it.timestamp)) }
+                .distinct()
+                .sortedByDescending { it }
+            
+            if (uniqueYears.isEmpty()) {
+                Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            
+            showSelectionDialog("Выберите год", uniqueYears) { selected ->
+                selectedYear = selected.toIntOrNull()
+                clearPeriodSelections()
+                applyYearSelection(selected)
+            }
+        }
+    }
+    
+    private fun clearPeriodSelections() {
+        selectedDay = null
+        selectedMonth = null
+        selectedYear = null
+    }
+    
+    private fun applyDaySelection(dayStr: String) {
+        val csvInfo = this.csvInfo ?: return
+        val dayFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        val parseDate = dayFormat.parse(dayStr) ?: return
+        val startOfDay = parseDate.time
+        val endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1
+        
+        fromTimestamp = startOfDay
+        toTimestamp = endOfDay
+        btnFromDate.text = dayFormat.format(Date(startOfDay))
+        btnToDate.text = dayFormat.format(Date(endOfDay))
+        LogStorageManager.logMessage("Визуализация: Выбран день $dayStr")
+    }
+    
+    private fun applyMonthSelection(monthStr: String) {
+        val csvInfo = this.csvInfo ?: return
+        val parseFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
+        val monthDate = parseFormat.parse(monthStr) ?: return
+        val calendar = java.util.Calendar.getInstance()
+        calendar.time = monthDate
+        calendar.set(java.util.Calendar.DAY_OF_MONTH, 1)
+        val startOfMonth = calendar.timeInMillis
+        calendar.add(java.util.Calendar.MONTH, 1)
+        val endOfMonth = calendar.timeInMillis - 1
+        
+        fromTimestamp = startOfMonth
+        toTimestamp = endOfMonth
+        btnFromDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(startOfMonth))
+        btnToDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(endOfMonth))
+        LogStorageManager.logMessage("Визуализация: Выбран месяц $monthStr")
+    }
+    
+    private fun applyYearSelection(yearStr: String) {
+        val year = yearStr.toIntOrNull() ?: return
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(year, 0, 1, 0, 0, 0)
+        val startOfYear = calendar.timeInMillis
+        calendar.set(year + 1, 0, 1, 0, 0, 0)
+        val endOfYear = calendar.timeInMillis - 1
+        
+        fromTimestamp = startOfYear
+        toTimestamp = endOfYear
+        btnFromDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(startOfYear))
+        btnToDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(endOfYear))
+        LogStorageManager.logMessage("Визуализация: Выбран год $yearStr")
+    }
+    
+private fun showSelectionDialog(title: String, items: List<String>, onSelect: (String) -> Unit) {
+        val builder = android.app.AlertDialog.Builder(this)
+        
+        val titleView = android.widget.TextView(this).apply {
+            text = title
+            setTextColor(0xFF1976D2.toInt())
+            textSize = 18f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 40, 0, 20)
+        }
+        builder.setCustomTitle(titleView)
+        
+        val itemsArray = items.toTypedArray()
+        builder.setItems(itemsArray) { dialog, which ->
+            onSelect(itemsArray[which])
+        }
+        
+        builder.setNegativeButton("Отмена") { db, _ ->
+            db.dismiss()
+        }
+        
+        val dialog = builder.create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).setTextColor(0xFF1976D2.toInt())
+        }
+        dialog.show()
+    }
 
     private fun formatDate(ts: Long): String {
         return SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(ts))
+    }
+    
+    private fun setupPdfExport() {
+        btnExportPdf.setOnClickListener {
+            val selParams = paramBoundsList.filter { it.isSelected }
+            if (selParams.isEmpty()) {
+                Toast.makeText(this, "Выберите параметры", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            
+            try {
+                val csvInfo = this.csvInfo ?: run {
+                    Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                
+                val chart = com.github.mikephil.charting.charts.LineChart(this).apply {
+                    description.isEnabled = false
+                    setTouchEnabled(false)
+                    isDragEnabled = false
+                    setScaleEnabled(false)
+                    isScaleXEnabled = false
+                    isScaleYEnabled = false
+                    setPinchZoom(false)
+                    setDrawGridBackground(true)
+                    setGridBackgroundColor(android.graphics.Color.WHITE)
+                    isHighlightPerDragEnabled = false
+                    
+                    legend.apply {
+                        textColor = android.graphics.Color.BLACK
+                        textSize = 35f
+                        isWordWrapEnabled = true
+                        orientation = com.github.mikephil.charting.components.Legend.LegendOrientation.HORIZONTAL
+                        verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.BOTTOM
+                        horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.CENTER
+                        setDrawInside(false)
+                        form = com.github.mikephil.charting.components.Legend.LegendForm.CIRCLE
+                        formSize = 25f
+                        xEntrySpace = 40f
+                        yEntrySpace = 20f
+                        formToTextSpace = 15f
+                    }
+                    
+                    xAxis.apply {
+                        position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
+                        setDrawGridLines(true)
+                        gridColor = android.graphics.Color.LTGRAY
+                        textColor = android.graphics.Color.DKGRAY
+                        textSize = 30f
+                        granularity = 1f
+                        setLabelRotationAngle(-90f)
+                        labelCount = 10
+                        valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                            private val format = java.text.SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
+                            override fun getFormattedValue(value: Float): String {
+                                return try { format.format(Date(value.toLong())) } catch (e: Exception) { "" }
+                            }
+                        }
+                    }
+                    
+                    axisLeft.apply {
+                        setDrawGridLines(true)
+                        gridColor = android.graphics.Color.LTGRAY
+                        textColor = android.graphics.Color.DKGRAY
+                        textSize = 40f
+                    }
+                    axisRight.isEnabled = false
+                }
+                
+                val dataSets = mutableListOf<com.github.mikephil.charting.data.LineDataSet>()
+                val colors = listOf(
+                    0xFFE91E63.toInt(), 0xFF2196F3.toInt(), 0xFF4CAF50.toInt(),
+                    0xFFFF9800.toInt(), 0xFF9C27B0.toInt(), 0xFF00BCD4.toInt(),
+                    0xFF795548.toInt(), 0xFF607D8B.toInt()
+                )
+                
+                for ((index, param) in selParams.withIndex()) {
+                    val paramName = param.name
+                    val entries = mutableListOf<com.github.mikephil.charting.data.Entry>()
+                    var lastEntry: com.github.mikephil.charting.data.Entry? = null
+                    
+                    for (point in csvInfo.dataPoints) {
+                        val ts = point.timestamp
+                        if (fromTimestamp != null && ts < fromTimestamp!!) continue
+                        if (toTimestamp != null && ts > toTimestamp!!) continue
+                        point.values[paramName]?.let { value ->
+                            val entry = com.github.mikephil.charting.data.Entry(ts.toFloat(), value.toFloat())
+                            entries.add(entry)
+                            lastEntry = entry
+                        }
+                    }
+                    
+                    if (entries.isNotEmpty()) {
+                        val color = colors[index % colors.size]
+                        
+                        val dataSet = com.github.mikephil.charting.data.LineDataSet(entries, paramName).apply {
+                            this.color = color
+                            lineWidth = 5f
+                            setDrawCircles(true)
+                            circleRadius = 8f
+                            setDrawCircleHole(true)
+                            circleHoleRadius = 4f
+                            circleColors = listOf(color)
+                            setDrawValues(false)
+                            mode = com.github.mikephil.charting.data.LineDataSet.Mode.LINEAR
+                        }
+                        dataSets.add(dataSet)
+                    }
+                }
+                
+                if (dataSets.isEmpty()) {
+                    Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                
+                chart.data = com.github.mikephil.charting.data.LineData(dataSets.toList())
+                chart.invalidate()
+                
+                val pdfDoc = android.graphics.pdf.PdfDocument()
+                
+                val pdfWidth = 2970
+                val pdfHeight = 2100
+                val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pdfWidth, pdfHeight, 1).create()
+                val page = pdfDoc.startPage(pageInfo)
+                val canvas = page.canvas
+                
+                val titlePaint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    textSize = 80f
+                    isFakeBoldText = true
+                }
+                canvas.drawText("Графики данных", 100f, 120f, titlePaint)
+                
+                val chartLeft = 100
+                val chartTop = 300
+                val chartW = pdfWidth - 200
+                val chartH = pdfHeight - 450
+                
+                canvas.translate(chartLeft.toFloat(), chartTop.toFloat())
+                chart.layout(0, 0, chartW, chartH)
+                chart.draw(canvas)
+                
+                pdfDoc.finishPage(page)
+                
+                val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                val mpumFolder = File(downloadsDir, "MPUMUMPOS Downloads")
+                if (!mpumFolder.exists()) mpumFolder.mkdirs()
+                
+                val safeFileName = fileName.replace(".csv", "").replace(" ", "_")
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                val pdfFileName = "${safeFileName}_$timestamp.pdf"
+                val file = File(mpumFolder, pdfFileName)
+                
+                FileOutputStream(file).use { out ->
+                    pdfDoc.writeTo(out)
+                }
+                pdfDoc.close()
+                
+                Toast.makeText(this, "Сохранено: ${file.name}", Toast.LENGTH_LONG).show()
+                LogStorageManager.logMessage("Визуализация: PDF сохранен ${file.absolutePath}")
+                
+            } catch (e: Exception) {
+                Toast.makeText(this, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                LogStorageManager.logMessage("Визуализация: Ошибка PDF: ${e.message}")
+            }
+        }
+    }
+    
+    private fun setupBottomNavigation() {
+        findViewById<View>(R.id.btnLogs)?.setOnClickListener {
+            startActivity(Intent(this, LogDisplayActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
+        }
+        
+        findViewById<View>(R.id.btnHome)?.setOnClickListener {
+            startActivity(Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
+        }
+        
+        findViewById<View>(R.id.btnStorage)?.setOnClickListener {
+            startActivity(Intent(this, StorageActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
+        }
     }
 }
