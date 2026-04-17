@@ -35,7 +35,11 @@ class ChartActivity : AppCompatActivity() {
         private val CHART_COLORS = listOf(
             0xFFE91E63.toInt(), 0xFF2196F3.toInt(), 0xFF4CAF50.toInt(),
             0xFFFF9800.toInt(), 0xFF9C27B0.toInt(), 0xFF00BCD4.toInt(),
-            0xFF795548.toInt(), 0xFF607D8B.toInt()
+            0xFF795548.toInt(), 0xFF607D8B.toInt(), 0xFFFFEB3B.toInt(),
+            0xFF3F51B5.toInt(), 0xFF009688.toInt(), 0xFFF44336.toInt(),
+            0xFF8BC34A.toInt(), 0xFF673AB7.toInt(), 0xFF03A9F4.toInt(),
+            0xFFC2185B.toInt(), 0xFF1976D2.toInt(), 0xFF388E3C.toInt(),
+            0xFFFF5722.toInt(), 0xFF7B1FA2.toInt()
         )
         const val EXTRA_FILE_PATH = "file_path"
         const val EXTRA_FILE_NAME = "file_name"

@@ -408,9 +408,10 @@ class VisualizationActivity : AppCompatActivity() {
             val csvInfo = this.csvInfo ?: return@setOnClickListener
             val dayFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
             val uniqueDays = csvInfo.dataPoints
-                .map { dayFormat.format(Date(it.timestamp)) }
-                .distinct()
-                .sortedByDescending { it }
+                .map { it.timestamp to dayFormat.format(Date(it.timestamp)) }
+                .distinctBy { it.second }
+                .sortedBy { it.first }
+                .map { it.second }
             
             if (uniqueDays.isEmpty()) {
                 Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
@@ -428,9 +429,10 @@ class VisualizationActivity : AppCompatActivity() {
             val csvInfo = this.csvInfo ?: return@setOnClickListener
             val monthFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
             val uniqueMonths = csvInfo.dataPoints
-                .map { monthFormat.format(Date(it.timestamp)) }
-                .distinct()
-                .sortedByDescending { it }
+                .map { it.timestamp to monthFormat.format(Date(it.timestamp)) }
+                .distinctBy { it.second }
+                .sortedBy { it.first }
+                .map { it.second }
             
             if (uniqueMonths.isEmpty()) {
                 Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
@@ -449,9 +451,10 @@ class VisualizationActivity : AppCompatActivity() {
             val csvInfo = this.csvInfo ?: return@setOnClickListener
             val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
             val uniqueYears = csvInfo.dataPoints
-                .map { yearFormat.format(Date(it.timestamp)) }
-                .distinct()
-                .sortedByDescending { it }
+                .map { it.timestamp to yearFormat.format(Date(it.timestamp)) }
+                .distinctBy { it.second }
+                .sortedBy { it.first }
+                .map { it.second }
             
             if (uniqueYears.isEmpty()) {
                 Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
@@ -622,7 +625,11 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                 val colors = listOf(
                     0xFFE91E63.toInt(), 0xFF2196F3.toInt(), 0xFF4CAF50.toInt(),
                     0xFFFF9800.toInt(), 0xFF9C27B0.toInt(), 0xFF00BCD4.toInt(),
-                    0xFF795548.toInt(), 0xFF607D8B.toInt()
+                    0xFF795548.toInt(), 0xFF607D8B.toInt(), 0xFFFFEB3B.toInt(),
+                    0xFF3F51B5.toInt(), 0xFF009688.toInt(), 0xFFF44336.toInt(),
+                    0xFF8BC34A.toInt(), 0xFF673AB7.toInt(), 0xFF03A9F4.toInt(),
+                    0xFFC2185B.toInt(), 0xFF1976D2.toInt(), 0xFF388E3C.toInt(),
+                    0xFFFF5722.toInt(), 0xFF7B1FA2.toInt()
                 )
                 
                 for ((index, param) in selParams.withIndex()) {
