@@ -4,6 +4,7 @@ import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.widget.ImageButton
+import com.mobileapp.BluetoothCommands as BC
 import android.content.pm.PackageManager
 import android.os.*
 import android.util.Log
@@ -19,35 +20,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-
-        // Команды для устройства
-        private const val CMD_SET_INTERVAL = "SET interval "
-        private const val CMD_SET_START = "SET start "
-        private const val CMD_SET_TIME = "SET time "
-        private const val CMD_GET_DATA = "GET data"
-        private const val CMD_GET_INTERVAL = "GET interval"
-        private const val CMD_GET_START = "GET start"
-        private const val CMD_GET_TIME = "GET time"
-
-        // Конвертация минут в формат ДД:ЧЧ:ММ
-        fun minutesToDDHHMM(totalMinutes: Int): String {
-            val days = totalMinutes / (24 * 60)
-            val hours = (totalMinutes % (24 * 60)) / 60
-            val minutes = totalMinutes % 60
-            return String.format("%02d:%02d:%02d", days, hours, minutes)
-        }
-
-        // Конвертация из формата ДД:ЧЧ:ММ в минуты
-        fun ddHHMMToMinutes(ddHHMM: String): Int? {
-            val parts = ddHHMM.split(":")
-            if (parts.size == 3) {
-                val days = parts[0].toIntOrNull() ?: 0
-                val hours = parts[1].toIntOrNull() ?: 0
-                val minutes = parts[2].toIntOrNull() ?: 0
-                return days * 24 * 60 + hours * 60 + minutes
-            }
-            return ddHHMM.toIntOrNull() // null если некорректный формат
-        }
     }
 
     private lateinit var btnConnect: Button
@@ -205,12 +177,12 @@ class MainActivity : AppCompatActivity() {
     private fun requestDeviceSettings() {
         // Запрос текущих настроек с устройства (если поддерживается)
         LogStorageManager.logMessage("Запрос текущих настроек с устройства...")
-        bluetoothManager.sendCommand(CMD_GET_INTERVAL)
+        bluetoothManager.sendCommand(BC.CMD_GET_INTERVAL)
         handler.postDelayed({
-            bluetoothManager.sendCommand(CMD_GET_START)
+            bluetoothManager.sendCommand(BC.CMD_GET_START)
         }, 100)
         handler.postDelayed({
-            bluetoothManager.sendCommand(CMD_GET_TIME)
+            bluetoothManager.sendCommand(BC.CMD_GET_TIME)
         }, 200)
     }
 
@@ -264,9 +236,9 @@ class MainActivity : AppCompatActivity() {
         intervalEditText.setOnClickListener {
             if (isEditingMode) {
                 val currentText = intervalEditText.text.toString()
-                val currentValue = ddHHMMToMinutes(currentText) ?: 1
+                val currentValue = BC.ddHHMMToMinutes(currentText) ?: 1
                 dialogManager.showIntervalPickerDialog(currentValue) { selectedValue ->
-                    intervalEditText.setText(minutesToDDHHMM(selectedValue))
+                    intervalEditText.setText(BC.minutesToDDHHMM(selectedValue))
                 }
             } else {
                 Toast.makeText(this, R.string.toast_press_field, Toast.LENGTH_LONG).show()
@@ -374,7 +346,7 @@ class MainActivity : AppCompatActivity() {
         timeRequestRunnable = object : Runnable {
             override fun run() {
                 if (bluetoothManager.isConnected()) {
-                    bluetoothManager.sendCommand(CMD_GET_TIME)
+                    bluetoothManager.sendCommand(BC.CMD_GET_TIME)
                     LogStorageManager.logMessage("Запрос текущего времени с устройства (периодический)")
                 }
                 handler.postDelayed(this, 30000) // 30 seconds
@@ -449,7 +421,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun sendNewParamsToDevice() {
         val intervalText = intervalEditText.text.toString()
-        val intervalMinutes = ddHHMMToMinutes(intervalText)
+        val intervalMinutes = BC.ddHHMMToMinutes(intervalText)
         val startTime = startTimeEditText.text.toString()
 
         if (intervalMinutes == null) {
@@ -464,23 +436,23 @@ class MainActivity : AppCompatActivity() {
         LogStorageManager.logMessage("Время старта: $startTime")
         
         // Отправляем команды с небольшой задержкой между ними
-        bluetoothManager.sendCommand(CMD_SET_INTERVAL + intervalMinutes)
-        LogStorageManager.logMessage("Команда: $CMD_SET_INTERVAL$intervalMinutes")
+        bluetoothManager.sendCommand(BC.CMD_SET_INTERVAL + intervalMinutes)
+        LogStorageManager.logMessage("Команда: $BC.CMD_SET_INTERVAL$intervalMinutes")
         
         handler.postDelayed({
-            bluetoothManager.sendCommand(CMD_SET_START + startTime)
-            LogStorageManager.logMessage("Команда: $CMD_SET_START$startTime")
+            bluetoothManager.sendCommand(BC.CMD_SET_START + startTime)
+            LogStorageManager.logMessage("Команда: $BC.CMD_SET_START$startTime")
         }, 100)
     }
 
     private fun syncTime() {
         val currentTime = SimpleDateFormat("HH:mm dd.MM.yyyy", Locale.getDefault()).format(Date())
-        bluetoothManager.sendCommand(CMD_SET_TIME + currentTime)
+        bluetoothManager.sendCommand(BC.CMD_SET_TIME + currentTime)
         LogStorageManager.logMessage("Время синхронизировано: $currentTime")
         
         // Запрашиваем подтверждение времени после синхронизации
         handler.postDelayed({
-            bluetoothManager.sendCommand(CMD_GET_TIME)
+            bluetoothManager.sendCommand(BC.CMD_GET_TIME)
         }, 500)
     }
 
@@ -525,9 +497,9 @@ class MainActivity : AppCompatActivity() {
             if (numberMatch != null) {
                 val intervalMinutes = numberMatch.value.toIntOrNull()
                 if (intervalMinutes != null) {
-                    val currentInterval = ddHHMMToMinutes(intervalEditText.text.toString())
+                    val currentInterval = BC.ddHHMMToMinutes(intervalEditText.text.toString())
                     if (currentInterval == null || currentInterval != intervalMinutes) {
-                        intervalEditText.setText(minutesToDDHHMM(intervalMinutes))
+                        intervalEditText.setText(BC.minutesToDDHHMM(intervalMinutes))
                         LogStorageManager.logMessage("Интервал обновлен: $intervalMinutes мин")
                     } else {
                         LogStorageManager.logMessage("Интервал не изменен (совпадает с текущим): $intervalMinutes мин")
@@ -544,7 +516,7 @@ class MainActivity : AppCompatActivity() {
         if (response.matches(Regex("\\d+"))) {
             val intervalMinutes = response.toIntOrNull()
             if (intervalMinutes != null) {
-                intervalEditText.setText(minutesToDDHHMM(intervalMinutes))
+                intervalEditText.setText(BC.minutesToDDHHMM(intervalMinutes))
                 LogStorageManager.logMessage("Интервал обновлен (авто): $intervalMinutes мин")
             }
             return
