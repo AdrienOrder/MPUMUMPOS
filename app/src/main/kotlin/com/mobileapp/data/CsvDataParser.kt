@@ -38,26 +38,21 @@ object CsvDataParser {
     )
     
     fun parseCsvFile(filePath: String): CsvFileInfo? {
-        LogStorageManager.logMessage("CSV: Парсинг файла: $filePath")
         return try {
             val file = File(filePath)
             if (!file.exists()) {
-                LogStorageManager.logMessage("CSV: ОШИБКА - файл не существует")
+                LogStorageManager.logMessage("Ошибка: файл не найден")
                 return null
             }
             
-            LogStorageManager.logMessage("CSV: Файл найден, размер: ${file.length()} байт")
-            
             val lines = file.readLines()
-            LogStorageManager.logMessage("CSV: Прочитано строк: ${lines.size}")
             
             if (lines.size < 2) {
-                LogStorageManager.logMessage("CSV: ОШИБКА - файл пустой или менее 2 строк")
+                LogStorageManager.logMessage("Ошибка: файл пустой")
                 return null
             }
             
             val headers = parseCsvLine(lines[0])
-            LogStorageManager.logMessage("CSV: Заголовки: $headers")
             
             val dataColumns = headers.filter { col ->
                 !col.equals("Date", ignoreCase = true) &&
@@ -65,26 +60,16 @@ object CsvDataParser {
                 !col.equals("Hour", ignoreCase = true) &&
                 !col.equals("Data", ignoreCase = true)
             }
-            LogStorageManager.logMessage("CSV: Столбцы данных: $dataColumns")
             
             val dataPoints = mutableListOf<CsvDataPoint>()
-            var skippedEmpty = 0
-            var skippedNoTimestamp = 0
-            var skippedNoValues = 0
             
             for (i in 1 until lines.size) {
-                if (lines[i].isBlank()) {
-                    skippedEmpty++
-                    continue
-                }
+                if (lines[i].isBlank()) continue
                 
                 val values = parseCsvLine(lines[i])
                 val timestamp = parseTimestamp(headers, values)
                 
-                if (timestamp == null) {
-                    skippedNoTimestamp++
-                    continue
-                }
+                if (timestamp == null) continue
                 
                 val numericValues = mutableMapOf<String, Double>()
                 for (col in dataColumns) {
@@ -98,18 +83,13 @@ object CsvDataParser {
                 }
                 if (numericValues.isNotEmpty()) {
                     dataPoints.add(CsvDataPoint(timestamp, numericValues))
-                } else {
-                    skippedNoValues++
                 }
             }
-            
-            LogStorageManager.logMessage("CSV: Обработано точек: ${dataPoints.size}")
-            LogStorageManager.logMessage("CSV: Пропущено (пустые): $skippedEmpty, (нет timestamp): $skippedNoTimestamp, (нет значений): $skippedNoValues")
             
             if (dataPoints.isNotEmpty()) {
                 val minTs = dataPoints.minOf { it.timestamp }
                 val maxTs = dataPoints.maxOf { it.timestamp }
-                LogStorageManager.logMessage("CSV: Диапазон дат: ${SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(minTs))} - ${SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(maxTs))}")
+                LogStorageManager.logMessage("CSV: ${dataPoints.size} точек, ${formatDate(minTs)} - ${formatDate(maxTs)}")
             }
             
             CsvFileInfo(
@@ -120,9 +100,13 @@ object CsvDataParser {
                 lineCount = lines.size
             )
         } catch (e: Exception) {
-            LogStorageManager.logMessage("CSV: ОШИБКА парсинга - ${e.message}")
+            LogStorageManager.logMessage("Ошибка парсинга: ${e.message}")
             null
         }
+    }
+    
+    private fun formatDate(ts: Long): String {
+        return SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(ts))
     }
     
     private fun parseCsvLine(line: String): List<String> {

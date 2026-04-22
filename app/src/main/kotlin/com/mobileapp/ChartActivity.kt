@@ -90,16 +90,10 @@ class ChartActivity : AppCompatActivity() {
             paramName to bounds
         } ?: emptyMap()
 
-        LogStorageManager.logMessage("=== ГРАФИК: Открыт файл '$fileName' ===")
-        LogStorageManager.logMessage("График: Путь: $filePath")
-        LogStorageManager.logMessage("График: Параметры: $selectedParams")
-        LogStorageManager.logMessage("График: Ориентация: ${if (isLandscape) "Горизонтальная" else "Вертикальная"}")
-        LogStorageManager.logMessage("График: Границы: $paramBounds")
-        LogStorageManager.logMessage("График: Период: ${formatDate(fromTimestamp)} - ${formatDate(toTimestamp)}")
+        LogStorageManager.logMessage("График: $fileName, $selectedParams")
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { 
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
-            LogStorageManager.logMessage("График: Закрытие экрана")
             finish() 
         }
         
@@ -112,7 +106,6 @@ class ChartActivity : AppCompatActivity() {
             }
             setRequestedOrientation(requestedOrientation)
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
-            LogStorageManager.logMessage("График: Поворот экрана в ${if (isLandscape) "гориз." else "верт."}")
         }
         
         chart = findViewById(R.id.chartFull)
@@ -185,23 +178,13 @@ class ChartActivity : AppCompatActivity() {
 
     private fun drawChart() {
         val csvInfo = CsvDataParser.parseCsvFile(filePath)
-        if (csvInfo == null) {
-            LogStorageManager.logMessage("График: ОШИБКА - файл не найден")
-            return
-        }
-        if (selectedParams.isEmpty()) {
-            LogStorageManager.logMessage("График: ОШИБКА - не выбраны параметры")
+        if (csvInfo == null || selectedParams.isEmpty()) {
             return
         }
         
         if (fromTimestamp > 0 && toTimestamp > 0 && fromTimestamp > toTimestamp) {
-            LogStorageManager.logMessage("График: ОШИБКА - неверный период")
             return
         }
-        
-        LogStorageManager.logMessage("График: Период: ${formatDate(fromTimestamp)} - ${formatDate(toTimestamp)}")
-        LogStorageManager.logMessage("График: Построение, ориентация: ${if (isLandscape) "Горизонтальная" else "Вертикальная"}")
-        LogStorageManager.logMessage("График: Всего точек: ${csvInfo.dataPoints.size}")
         
         val dataSets = mutableListOf<LineDataSet>()
         
@@ -257,18 +240,10 @@ class ChartActivity : AppCompatActivity() {
                     mode = LineDataSet.Mode.LINEAR
                 }
                 dataSets.add(dataSet)
-                
-                val bounds = paramBounds[param]
-                if (bounds != null) {
-                    LogStorageManager.logMessage("График: $param - ${entries.size} точек, границы: ${bounds.first} - ${bounds.second}")
-                } else {
-                    LogStorageManager.logMessage("График: $param - ${entries.size} точек")
-                }
             }
         }
         
         if (dataSets.isEmpty()) {
-            LogStorageManager.logMessage("График: ОШИБКА - нет данных")
             return
         }
         
@@ -290,7 +265,6 @@ class ChartActivity : AppCompatActivity() {
                     textSize = 10f
                 }
                 chart.axisLeft.addLimitLine(lowerLine)
-                LogStorageManager.logMessage("График: Нижняя граница $param: $it")
             }
             
             upper?.let {
@@ -302,7 +276,6 @@ class ChartActivity : AppCompatActivity() {
                     textSize = 10f
                 }
                 chart.axisLeft.addLimitLine(upperLine)
-                LogStorageManager.logMessage("График: Верхняя граница $param: $it")
             }
         }
         
@@ -318,7 +291,7 @@ class ChartActivity : AppCompatActivity() {
             chart.moveViewToX(xMin)
         }
         
-        LogStorageManager.logMessage("График: Построен успешно")
+        LogStorageManager.logMessage("График: построен")
     }
     
     private fun exportToPdf() {
@@ -345,11 +318,9 @@ class ChartActivity : AppCompatActivity() {
             pdfDocument.close()
             
             Toast.makeText(this, "Сохранено: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-            LogStorageManager.logMessage("График: PDF сохранен ${file.absolutePath}")
             
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка сохранения: ${e.message}", Toast.LENGTH_SHORT).show()
-            LogStorageManager.logMessage("График: Ошибка PDF: ${e.message}")
         }
     }
 }

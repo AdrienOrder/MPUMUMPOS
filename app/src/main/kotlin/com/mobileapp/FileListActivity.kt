@@ -28,7 +28,7 @@ class FileListActivity : AppCompatActivity() {
         deviceId = intent.getLongExtra("device_id", 0)
         deviceName = intent.getStringExtra("device_name") ?: ""
 
-        LogStorageManager.logMessage("=== ФАЙЛЫ: Открыто устройство '$deviceName' (ID: $deviceId) ===")
+        LogStorageManager.logMessage("Файлы: $deviceName")
 
         StorageDatabaseManager.ContextHolder.context = applicationContext
         dbManager = StorageDatabaseManager(this)
@@ -94,43 +94,32 @@ class FileListActivity : AppCompatActivity() {
         val files = dbManager.getCsvFilesForDevice(deviceId)
         adapter.submitList(files)
         findViewById<View>(R.id.tvEmpty).visibility = if (files.isEmpty()) View.VISIBLE else View.GONE
-        LogStorageManager.logMessage("Файлы: Загружено файлов: ${files.size}")
+        
     }
 
     private fun downloadFile(file: CsvFile) {
         try {
-            LogStorageManager.logMessage("Файлы: Скачивание файла: ${file.fileName}")
-            LogStorageManager.logMessage("Файлы: Путь файла: ${file.filePath}")
-            
             val sourceFile = File(file.filePath)
-            LogStorageManager.logMessage("Файлы: Исходный файл существует: ${sourceFile.exists()}")
-            LogStorageManager.logMessage("Файлы: Размер исходного файла: ${sourceFile.length()} байт")
             
-            // Create MPUMUMPOS Downloads folder in external storage
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val mpumFolder = File(downloadsDir, "MPUMUMPOS Downloads")
             if (!mpumFolder.exists()) mpumFolder.mkdirs()
             
-            LogStorageManager.logMessage("Файлы: Папка загрузок: ${mpumFolder.absolutePath}")
-            
-            // Handle duplicate files with version number
             var baseName = file.fileName.substringBeforeLast(".csv")
             var ext = ".csv"
             var destFile = File(mpumFolder, file.fileName)
             var version = 1
             
             while (destFile.exists()) {
-                LogStorageManager.logMessage("Файлы: Файл уже существует, добавление версии $version")
                 destFile = File(mpumFolder, "$baseName ($version)$ext")
                 version++
             }
             
             sourceFile.copyTo(destFile)
-            LogStorageManager.logMessage("Файлы: Файл скопирован: ${destFile.name}")
-            LogStorageManager.logMessage("Файлы: Размер скачанного файла: ${destFile.length()} байт")
+            LogStorageManager.logMessage("Скачано: ${destFile.name}")
             Toast.makeText(this, "${destFile.name} скачан", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            LogStorageManager.logMessage("Файлы: ОШИБКА скачивания - ${e.message}")
+            LogStorageManager.logMessage("Ошибка скачивания: ${e.message}")
             Toast.makeText(this, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }

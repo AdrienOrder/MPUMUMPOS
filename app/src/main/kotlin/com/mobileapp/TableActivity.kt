@@ -57,14 +57,10 @@ class TableActivity : AppCompatActivity() {
         fromTimestamp = intent.getLongExtra(EXTRA_FROM_DATE, 0)
         toTimestamp = intent.getLongExtra(EXTRA_TO_DATE, 0)
 
-        LogStorageManager.logMessage("=== ТАБЛИЦА: Открыт файл '$fileName' ===")
-        LogStorageManager.logMessage("Таблица: Путь: $filePath")
-        LogStorageManager.logMessage("Таблица: Параметры: $selectedParams")
-        LogStorageManager.logMessage("Таблица: Период: ${formatDate(fromTimestamp)} - ${formatDate(toTimestamp)}")
+        LogStorageManager.logMessage("Таблица: $fileName, ${selectedParams.size} пар.")
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { 
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
-            LogStorageManager.logMessage("Таблица: Закрытие экрана")
             finish() 
         }
         
@@ -77,7 +73,6 @@ class TableActivity : AppCompatActivity() {
             }
             setRequestedOrientation(requestedOrientation)
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
-            LogStorageManager.logMessage("Таблица: Поворот экрана в ${if (isLandscape) "гориз." else "верт."}")
         }
         
         tableLayout = findViewById(R.id.tableData)
@@ -117,8 +112,7 @@ class TableActivity : AppCompatActivity() {
                     tableLayout.addView(row)
                 }
                 
-                LogStorageManager.logMessage("Таблица: Отображено строк: ${rows.size}")
-                LogStorageManager.logMessage("Таблица: Таблица построена успешно")
+                LogStorageManager.logMessage("Таблица: ${rows.size} строк")
             }
         }.start()
     }
@@ -127,33 +121,22 @@ class TableActivity : AppCompatActivity() {
         val rows = mutableListOf<TableRow>()
         
         if (csvInfo == null || dataParams.isEmpty()) {
-            LogStorageManager.logMessage("Таблица: ОШИБКА - нет данных")
             return rows
         }
         
-        // Validate period
         if (fromTimestamp > 0 && toTimestamp > 0 && fromTimestamp > toTimestamp) {
-            LogStorageManager.logMessage("Таблица: ОШИБКА - неверный период: ${formatDate(fromTimestamp)} > ${formatDate(toTimestamp)}")
             return rows
         }
-        
-        LogStorageManager.logMessage("Таблица: Период: ${formatDate(fromTimestamp)} - ${formatDate(toTimestamp)}")
-        LogStorageManager.logMessage("Таблица: Всего точек в файле: ${csvInfo.dataPoints.size}")
-        LogStorageManager.logMessage("Таблица: Столбцов: ${dataParams.size}")
         
         val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
         var rowCount = 0
-        var skipped = 0
         
         for (point in csvInfo.dataPoints) {
-            if (rowCount >= MAX_ROWS) {
-                LogStorageManager.logMessage("Таблица: Достигнут лимит $MAX_ROWS строк")
-                break
-            }
+            if (rowCount >= MAX_ROWS) break
             
             val ts = point.timestamp
-            if (fromTimestamp > 0 && ts < fromTimestamp) { skipped++; continue }
-            if (toTimestamp > 0 && ts > toTimestamp) { skipped++; continue }
+            if (fromTimestamp > 0 && ts < fromTimestamp) continue
+            if (toTimestamp > 0 && ts > toTimestamp) continue
             
             val dataRow = TableRow(this).apply {
                 setBackgroundColor(if (rowCount % 2 == 0) 0xFFFFFFFF.toInt() else 0xFFF5F5F5.toInt())
@@ -169,7 +152,6 @@ class TableActivity : AppCompatActivity() {
             rowCount++
         }
         
-        LogStorageManager.logMessage("Таблица: Пропущено строк: $skipped")
         return rows
     }
 

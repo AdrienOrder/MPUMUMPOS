@@ -55,8 +55,7 @@ class VisualizationActivity : AppCompatActivity() {
         filePath = intent.getStringExtra("file_path") ?: ""
         fileName = intent.getStringExtra("file_name") ?: ""
 
-        LogStorageManager.logMessage("=== ВИЗУАЛИЗАЦИЯ: Открыт файл '$fileName' ===")
-        LogStorageManager.logMessage("Визуализация: Путь файла: $filePath")
+        LogStorageManager.logMessage("Визуализация: $fileName")
 
         initViews()
         loadCsv()
@@ -94,9 +93,9 @@ class VisualizationActivity : AppCompatActivity() {
                 pb.lowerBound = lower
                 pb.upperBound = upper
                 if (isChecked) {
-                    LogStorageManager.logMessage("Визуализация: Выбран параметр: $param, границы: $lower - $upper")
+                    // Краткий лог при выборе параметра
                 } else {
-                    LogStorageManager.logMessage("Визуализация: Снят параметр: $param")
+                    
                 }
             }
         }
@@ -108,19 +107,22 @@ class VisualizationActivity : AppCompatActivity() {
 
     private fun setupDatePickers() {
         btnFromDate.setOnClickListener {
-            LogStorageManager.logMessage("Визуализация: Открыт выбор даты ОТ")
-            showDatePickerDialog(fromTimestamp ?: System.currentTimeMillis()) { ts ->
+            val info = csvInfo ?: return@setOnClickListener
+            val allTimestamps = info.dataPoints.map { it.timestamp }.sorted()
+            showPeriodPicker("Выберите дату", allTimestamps) { ts ->
                 fromTimestamp = ts
                 btnFromDate.text = formatDate(ts)
-                LogStorageManager.logMessage("Визуализация: Установлена дата ОТ: ${formatDate(ts)}")
+                LogStorageManager.logMessage("Визуализация: дата ОТ - ${formatDate(ts)}")
             }
         }
+        
         btnToDate.setOnClickListener {
-            LogStorageManager.logMessage("Визуализация: Открыт выбор даты ДО")
-            showDatePickerDialog(toTimestamp ?: System.currentTimeMillis()) { ts ->
+            val info = csvInfo ?: return@setOnClickListener
+            val allTimestamps = info.dataPoints.map { it.timestamp }.sorted()
+            showPeriodPicker("Выберите дату", allTimestamps) { ts ->
                 toTimestamp = ts
                 btnToDate.text = formatDate(ts)
-                LogStorageManager.logMessage("Визуализация: Установлена дата ДО: ${formatDate(ts)}")
+                LogStorageManager.logMessage("Визуализация: дата ДО - ${formatDate(ts)}")
             }
         }
     }
@@ -246,12 +248,12 @@ class VisualizationActivity : AppCompatActivity() {
         btnShowChart.setOnClickListener {
             val selectedParams = paramBoundsList.filter { it.isSelected }
             if (selectedParams.isEmpty()) {
-                LogStorageManager.logMessage("Визуализация: ОШИБКА - не выбраны параметры для графика")
+                LogStorageManager.logMessage("Ошибка: не выбраны параметры")
                 Toast.makeText(this, R.string.viz_select_params, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (fromTimestamp != null && toTimestamp != null && fromTimestamp!! > toTimestamp!!) {
-                LogStorageManager.logMessage("Визуализация: ОШИБКА - неверный период")
+                LogStorageManager.logMessage("Визуализация: ошибка периода")
                 Toast.makeText(this, "Неверный период", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -263,9 +265,7 @@ class VisualizationActivity : AppCompatActivity() {
                 }
             }
             
-            LogStorageManager.logMessage("Визуализация: Открытие графика")
-            LogStorageManager.logMessage("Визуализация: Параметры: ${selectedParams.map { "${it.name}(${it.lowerBound}-${it.upperBound})" }}")
-            LogStorageManager.logMessage("Визуализация: Период: ${formatDate(fromTimestamp ?: 0)} - ${formatDate(toTimestamp ?: 0)}")
+            LogStorageManager.logMessage("Визуализация: график - ${selectedParams.map { it.name }}")
             
             val boundsList = selectedParams.mapNotNull { param ->
                 val lb = param.lowerBound
@@ -291,18 +291,16 @@ class VisualizationActivity : AppCompatActivity() {
         btnShowTable.setOnClickListener {
             val selectedParams = paramBoundsList.filter { it.isSelected }
             if (selectedParams.isEmpty()) {
-                LogStorageManager.logMessage("Визуализация: ОШИБКА - не выбраны параметры для таблицы")
+                LogStorageManager.logMessage("Визуализация: не выбраны параметры для таблицы")
                 Toast.makeText(this, R.string.viz_select_params, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (fromTimestamp != null && toTimestamp != null && fromTimestamp!! > toTimestamp!!) {
-                LogStorageManager.logMessage("Визуализация: ОШИБКА - неверный период")
+                LogStorageManager.logMessage("Визуализация: ошибка - период")
                 Toast.makeText(this, "Неверный период", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            LogStorageManager.logMessage("Визуализация: Открытие таблицы")
-            LogStorageManager.logMessage("Визуализация: Параметры: ${selectedParams.map { it.name }}")
-            LogStorageManager.logMessage("Визуализация: Период: ${formatDate(fromTimestamp ?: 0)} - ${formatDate(toTimestamp ?: 0)}")
+            LogStorageManager.logMessage("Визуализация: таблица - ${selectedParams.map { it.name }}")
             startActivity(Intent(this, TableActivity::class.java).apply {
                 putExtra("file_path", filePath)
                 putExtra("file_name", fileName)
@@ -318,19 +316,16 @@ class VisualizationActivity : AppCompatActivity() {
         val allTimestamps = info.dataPoints.map { it.timestamp }.sorted()
         
         btnDay.setOnClickListener {
-            LogStorageManager.logMessage("Визуализация: Выбор периода ДЕНЬ")
             showPeriodPicker("Выберите день (начало)", allTimestamps) { startTs ->
                 val endTs = startTs + 24*60*60*1000L
                 fromTimestamp = startTs
                 toTimestamp = endTs
                 btnFromDate.text = formatDate(startTs)
                 btnToDate.text = formatDate(endTs)
-                LogStorageManager.logMessage("Визуализация: Установлен день: ${formatDate(startTs)} - ${formatDate(endTs)}")
             }
         }
         
         btnMonth.setOnClickListener {
-            LogStorageManager.logMessage("Визуализация: Выбор периода МЕСЯЦ")
             val minTs = allTimestamps.first()
             val maxTs = allTimestamps.last()
             showPeriodPicker("Выберите начало месяца", allTimestamps) { startTs ->
@@ -341,19 +336,16 @@ class VisualizationActivity : AppCompatActivity() {
                 toTimestamp = endTs
                 btnFromDate.text = formatDate(startTs)
                 btnToDate.text = formatDate(endTs)
-                LogStorageManager.logMessage("Визуализация: Установлен месяц: ${formatDate(startTs)} - ${formatDate(endTs)}")
             }
         }
         
         btnYear.setOnClickListener {
-            LogStorageManager.logMessage("Визуализация: Выбор периода ГОД")
             val minTs = allTimestamps.first()
             val maxTs = allTimestamps.last()
             fromTimestamp = minTs
             toTimestamp = maxTs
             btnFromDate.text = formatDate(minTs)
             btnToDate.text = formatDate(maxTs)
-            LogStorageManager.logMessage("Визуализация: Установлен год: ${formatDate(minTs)} - ${formatDate(maxTs)}")
         }
     }
     
@@ -380,15 +372,12 @@ class VisualizationActivity : AppCompatActivity() {
     private fun loadCsv() {
         csvInfo = CsvDataParser.parseCsvFile(filePath)
         if (csvInfo == null || csvInfo!!.dataPoints.isEmpty()) {
-            LogStorageManager.logMessage("Визуализация: ОШИБКА - файл пустой или не найден")
+            LogStorageManager.logMessage("Визуализация: ошибка - файл")
             Toast.makeText(this, R.string.viz_no_data, Toast.LENGTH_SHORT).show()
             return
         }
         
-        LogStorageManager.logMessage("Визуализация: CSV загружен успешно")
-        LogStorageManager.logMessage("Визуализация: Столбцов данных: ${csvInfo!!.dataColumns.size}")
-        LogStorageManager.logMessage("Визуализация: Строк данных: ${csvInfo!!.dataPoints.size}")
-        LogStorageManager.logMessage("Визуализация: Параметры: ${csvInfo!!.dataColumns}")
+LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataColumns.size} колонок, ${csvInfo!!.dataPoints.size} строк")
         
         paramBoundsList = csvInfo!!.dataColumns.map { ParamWithBounds(it) }.toMutableList()
         paramAdapter?.submitList(paramBoundsList)
@@ -486,7 +475,6 @@ class VisualizationActivity : AppCompatActivity() {
         toTimestamp = endOfDay
         btnFromDate.text = dayFormat.format(Date(startOfDay))
         btnToDate.text = dayFormat.format(Date(endOfDay))
-        LogStorageManager.logMessage("Визуализация: Выбран день $dayStr")
     }
     
     private fun applyMonthSelection(monthStr: String) {
@@ -504,7 +492,6 @@ class VisualizationActivity : AppCompatActivity() {
         toTimestamp = endOfMonth
         btnFromDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(startOfMonth))
         btnToDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(endOfMonth))
-        LogStorageManager.logMessage("Визуализация: Выбран месяц $monthStr")
     }
     
     private fun applyYearSelection(yearStr: String) {
@@ -519,7 +506,6 @@ class VisualizationActivity : AppCompatActivity() {
         toTimestamp = endOfYear
         btnFromDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(startOfYear))
         btnToDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(endOfYear))
-        LogStorageManager.logMessage("Визуализация: Выбран год $yearStr")
     }
     
 private fun showSelectionDialog(title: String, items: List<String>, onSelect: (String) -> Unit) {
@@ -715,11 +701,9 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                 pdfDoc.close()
                 
                 Toast.makeText(this, "Сохранено: ${file.name}", Toast.LENGTH_LONG).show()
-                LogStorageManager.logMessage("Визуализация: PDF сохранен ${file.absolutePath}")
                 
             } catch (e: Exception) {
                 Toast.makeText(this, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
-                LogStorageManager.logMessage("Визуализация: Ошибка PDF: ${e.message}")
             }
         }
     }

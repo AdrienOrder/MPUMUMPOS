@@ -35,18 +35,11 @@ class StorageActivity : AppCompatActivity() {
 
     private fun importFile(uri: Uri) {
         try {
-            LogStorageManager.logMessage("Хранилище: Импорт CSV - начало")
-            LogStorageManager.logMessage("Хранилище: URI файла: $uri")
-            
-            // Get permanent read access
             val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             contentResolver.takePersistableUriPermission(uri, takeFlags)
-            LogStorageManager.logMessage("Хранилище: Получены права на чтение файла")
             
-            // Read file content
             val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Cannot open file")
             
-            // Try to get display name from content resolver
             var fileName: String? = null
             try {
                 contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
@@ -59,43 +52,27 @@ class StorageActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) { }
             
-            // Fallback
             if (fileName.isNullOrBlank()) {
                 fileName = "import_${System.currentTimeMillis()}.csv"
             }
             
-            LogStorageManager.logMessage("Хранилище: Имя файла: $fileName")
-            
-            // Ensure CSV extension
             if (!fileName!!.lowercase().endsWith(".csv")) {
                 fileName = "$fileName.csv"
             }
             
-            // Check and force CSV extension
-            if (!fileName.lowercase().endsWith(".csv")) {
-                fileName += ".csv"
-            }
-            
-            // Validate it's a CSV by checking content
             val firstLine = inputStream.bufferedReader().use { it.readLine() }
             inputStream.close()
             
-            LogStorageManager.logMessage("Хранилище: Первые данные: $firstLine")
-            
             if (firstLine.isNullOrBlank() || !firstLine.contains(",")) {
-                LogStorageManager.logMessage("Хранилище: ОШИБКА - файл не является CSV")
+                LogStorageManager.logMessage("Ошибка: не CSV файл")
                 Toast.makeText(this, "Это не CSV файл", Toast.LENGTH_SHORT).show()
                 return
             }
             
-            // Re-open stream for actual copy
             val newInputStream = contentResolver.openInputStream(uri) ?: throw Exception("Cannot re-open file")
             
-            // Save to app storage
             val destDir = File(getExternalFilesDir(null), "csv")
             if (!destDir.exists()) destDir.mkdirs()
-            
-            LogStorageManager.logMessage("Хранилище: Папка хранения: ${destDir.absolutePath}")
             
             val destFile = File(destDir, fileName)
             FileOutputStream(destFile).use { output ->
@@ -103,30 +80,24 @@ class StorageActivity : AppCompatActivity() {
             }
             newInputStream.close()
             
-            LogStorageManager.logMessage("Хранилище: Файл скопирован: ${destFile.absolutePath}")
-            LogStorageManager.logMessage("Хранилище: Размер файла: ${destFile.length()} байт")
-            
-            // Add to database with deviceId = 0 (imported files)
-            // Using destFile.absolutePath as the file is already saved
             val result = dbManager.addCsvFile(fileName, 0, destFile.absolutePath)
             if (result == null) {
-                LogStorageManager.logMessage("Хранилище: ОШИБКА - не удалось сохранить в БД")
+                LogStorageManager.logMessage("Ошибка сохранения в БД")
                 Toast.makeText(this, "Ошибка сохранения в БД", Toast.LENGTH_SHORT).show()
                 return
             }
             
-            LogStorageManager.logMessage("Хранилище: Файл добавлен в БД, ID: $result")
+            LogStorageManager.logMessage("Импорт: $fileName")
             Toast.makeText(this, R.string.storage_imported, Toast.LENGTH_SHORT).show()
             loadDevices()
             
-            // Navigate to file list
             startActivity(Intent(this, FileListActivity::class.java).apply {
                 putExtra("device_id", 0L)
                 putExtra("device_name", "Импортированные")
             })
             
         } catch (e: Exception) {
-            LogStorageManager.logMessage("Хранилище: ОШИБКА импорта - ${e.message}")
+            LogStorageManager.logMessage("Ошибка импорта: ${e.message}")
             Toast.makeText(this, "Ошибка импорта: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
@@ -140,7 +111,7 @@ class StorageActivity : AppCompatActivity() {
         instance = this
         setContentView(R.layout.activity_storage)
 
-        LogStorageManager.logMessage("=== ХРАНИЛИЩЕ: Открыто ===")
+        
 
         StorageDatabaseManager.ContextHolder.context = applicationContext
         dbManager = StorageDatabaseManager(this)
@@ -203,23 +174,18 @@ class StorageActivity : AppCompatActivity() {
         adapter.submitList(devices)
         findViewById<View>(R.id.tvEmpty).visibility = if (devices.isEmpty()) View.VISIBLE else View.GONE
         
-        LogStorageManager.logMessage("Хранилище: Загружено устройств: ${devices.size}")
-        LogStorageManager.logMessage("Хранилище: Импортированных файлов: $importedCount, устройств: ${allDevices.size}")
+        LogStorageManager.logMessage("Хранилище: $importedCount имп., ${allDevices.size} устр.")
     }
 
     private fun showDeleteDialog(device: Device) {
-        LogStorageManager.logMessage("Хранилище: Запрошено удаление - ${device.name}")
-        
         if (device.id == 0L) {
             AlertDialog.Builder(this)
                 .setTitle("Удалить файлы")
                 .setMessage("Удалить все импортированные файлы?")
                 .setPositiveButton("Удалить") { _, _ ->
                     val files = dbManager.getCsvFilesForDevice(0)
-                    LogStorageManager.logMessage("Хранилище: Удаление ${files.size} импортированных файлов")
                     for (file in files) {
                         dbManager.deleteCsvFile(file.id)
-                        LogStorageManager.logMessage("Хранилище: Удалён файл ID: ${file.id} - ${file.fileName}")
                     }
                     loadDevices()
                 }
@@ -230,10 +196,7 @@ class StorageActivity : AppCompatActivity() {
                 .setTitle("Удалить устройство")
                 .setMessage("Удалить ${device.name} и все его файлы?")
                 .setPositiveButton("Удалить") { _, _ ->
-                    val files = dbManager.getCsvFilesForDevice(device.id)
-                    LogStorageManager.logMessage("Хранилище: Удаление устройства ${device.name} и ${files.size} файлов")
                     dbManager.deleteDevice(device.id)
-                    LogStorageManager.logMessage("Хранилище: Устройство удалено ID: ${device.id}")
                     loadDevices()
                 }
                 .setNegativeButton("Отмена", null)

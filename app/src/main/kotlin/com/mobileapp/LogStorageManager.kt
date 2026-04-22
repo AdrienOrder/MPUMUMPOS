@@ -14,8 +14,8 @@ object LogStorageManager {
     }
 
     fun logMessage(msg: String) {
-        val dateTime = SimpleDateFormat("HH:mm:ss dd.MM.yyyy", Locale.getDefault()).format(Date())
-        val logEntry = "[$dateTime] $msg\n"
+        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val logEntry = "[$time] $msg\n"
         synchronized(logLock) {
             logText.append(logEntry)
         }

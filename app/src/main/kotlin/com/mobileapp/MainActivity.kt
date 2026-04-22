@@ -131,7 +131,6 @@ class MainActivity : AppCompatActivity() {
             updateUIState(wasConnected)
             
             LogStorageManager.logMessage("Приложение запущено")
-            Log.d(TAG, "onCreate завершен успешно, wasConnected: $wasConnected")
         } catch (e: Exception) {
             Log.e(TAG, "Ошибка в onCreate: ${e.message}", e)
             Toast.makeText(this, R.string.toast_error_start, Toast.LENGTH_LONG).show()
@@ -203,8 +202,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestDeviceSettings() {
-        // Запрос текущих настроек с устройства (если поддерживается)
-        LogStorageManager.logMessage("Запрос текущих настроек с устройства...")
         bluetoothManager.sendCommand(CMD_GET_INTERVAL)
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_GET_START)
@@ -216,8 +213,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupUI() {
         btnConnect.setOnClickListener {
-            Log.d(TAG, "Connect button clicked")
-            LogStorageManager.logMessage("Нажата кнопка подключения")
             if (bluetoothManager.isConnected()) {
                 bluetoothManager.disconnect()
             } else {
@@ -246,7 +241,6 @@ class MainActivity : AppCompatActivity() {
                         btnEditParams.text = getString(R.string.button_edit)
                         intervalEditText.isEnabled = false
                         startTimeEditText.isEnabled = false
-                        LogStorageManager.logMessage("Режим редактирования выключен, изменения отправлены")
                     },
                     onCancel = {
                         intervalEditText.setText(previousInterval)
@@ -255,7 +249,6 @@ class MainActivity : AppCompatActivity() {
                         btnEditParams.text = getString(R.string.button_edit)
                         intervalEditText.isEnabled = false
                         startTimeEditText.isEnabled = false
-                        LogStorageManager.logMessage("Режим редактирования выключен, изменения отменены")
                     }
                 )
             }
@@ -391,9 +384,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAndRequestPermissions() {
-        Log.d(TAG, "Checking permissions...")
-        LogStorageManager.logMessage("Проверка разрешений...")
-        
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(
                 Manifest.permission.BLUETOOTH_CONNECT,
@@ -410,14 +400,9 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED 
         }
         
-        Log.d(TAG, "Has permissions: $hasPermissions")
-        LogStorageManager.logMessage("Разрешения есть: $hasPermissions")
-
         if (hasPermissions) {
             checkBluetoothAndOpenDeviceList()
         } else {
-            Log.d(TAG, "Launching permission request...")
-            LogStorageManager.logMessage("Запуск запроса разрешений...")
             requestPermissionsLauncher.launch(permissions)
         }
     }
@@ -453,32 +438,22 @@ class MainActivity : AppCompatActivity() {
         val startTime = startTimeEditText.text.toString()
 
         if (intervalMinutes == null) {
-            LogStorageManager.logMessage("Ошибка: некорректный формат интервала: $intervalText")
             Toast.makeText(this, "Некорректный формат интервала", Toast.LENGTH_SHORT).show()
             return
         }
-
-        LogStorageManager.logMessage("Отправка параметров на устройство...")
-        LogStorageManager.logMessage("Интервал (поле): $intervalText")
-        LogStorageManager.logMessage("Интервал (минуты): $intervalMinutes")
-        LogStorageManager.logMessage("Время старта: $startTime")
         
-        // Отправляем команды с небольшой задержкой между ними
         bluetoothManager.sendCommand(CMD_SET_INTERVAL + intervalMinutes)
-        LogStorageManager.logMessage("Команда: $CMD_SET_INTERVAL$intervalMinutes")
         
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_SET_START + startTime)
-            LogStorageManager.logMessage("Команда: $CMD_SET_START$startTime")
         }, 100)
     }
 
     private fun syncTime() {
         val currentTime = SimpleDateFormat("HH:mm dd.MM.yyyy", Locale.getDefault()).format(Date())
         bluetoothManager.sendCommand(CMD_SET_TIME + currentTime)
-        LogStorageManager.logMessage("Время синхронизировано: $currentTime")
+        LogStorageManager.logMessage("Время синхр: $currentTime")
         
-        // Запрашиваем подтверждение времени после синхронизации
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_GET_TIME)
         }, 500)
@@ -493,13 +468,7 @@ class MainActivity : AppCompatActivity() {
         if (response.contains("START", ignoreCase = true) || response.startsWith("S:")) {
             val timeMatch = timePattern.find(response)
             if (timeMatch != null) {
-                val time = timeMatch.value
-                startTimeEditText.setText(time)
-                LogStorageManager.logMessage("Время старта обновлено: $time")
-                return
-            } else if (response.contains("OK", ignoreCase = true)) {
-                // "OK START" без времени - просто подтверждение
-                LogStorageManager.logMessage("Подтверждение: $response")
+                startTimeEditText.setText(timeMatch.value)
                 return
             }
         }
@@ -508,13 +477,7 @@ class MainActivity : AppCompatActivity() {
         if (response.contains("CURRENT", ignoreCase = true) || response.contains("TIME", ignoreCase = true) || response.startsWith("T:")) {
             val timeMatch = timePattern.find(response)
             if (timeMatch != null) {
-                val time = timeMatch.value
-                deviceTimeText.text = time
-                LogStorageManager.logMessage("Текущее время обновлено: $time")
-                return
-            } else if (response.contains("OK", ignoreCase = true)) {
-                // "OK TIME" без времени - просто подтверждение
-                LogStorageManager.logMessage("Подтверждение: $response")
+                deviceTimeText.text = timeMatch.value
                 return
             }
         }
@@ -528,14 +491,8 @@ class MainActivity : AppCompatActivity() {
                     val currentInterval = ddHHMMToMinutes(intervalEditText.text.toString())
                     if (currentInterval == null || currentInterval != intervalMinutes) {
                         intervalEditText.setText(minutesToDDHHMM(intervalMinutes))
-                        LogStorageManager.logMessage("Интервал обновлен: $intervalMinutes мин")
-                    } else {
-                        LogStorageManager.logMessage("Интервал не изменен (совпадает с текущим): $intervalMinutes мин")
                     }
                 }
-            } else if (response.contains("OK", ignoreCase = true)) {
-                // "OK INTERVAL" без числа - просто подтверждение
-                LogStorageManager.logMessage("Подтверждение: $response")
             }
             return
         }
@@ -545,7 +502,6 @@ class MainActivity : AppCompatActivity() {
             val intervalMinutes = response.toIntOrNull()
             if (intervalMinutes != null) {
                 intervalEditText.setText(minutesToDDHHMM(intervalMinutes))
-                LogStorageManager.logMessage("Интервал обновлен (авто): $intervalMinutes мин")
             }
             return
         }
@@ -553,29 +509,19 @@ class MainActivity : AppCompatActivity() {
         // 5. Если ответ выглядит как время (без префиксов) - обновляем текущее время
         val timeMatch = timePattern.find(response)
         if (timeMatch != null) {
-            val time = timeMatch.value
-            deviceTimeText.text = time
-            LogStorageManager.logMessage("Текущее время обновлено: $time")
+            deviceTimeText.text = timeMatch.value
             return
         }
         
-        // 6. Общие подтверждения (OK, Установлено, Успешно)
-        if (response.contains("OK", ignoreCase = true) || 
-            response.contains("Установлен", ignoreCase = true) ||
-            response.contains("Успешно", ignoreCase = true)) {
-            LogStorageManager.logMessage("Подтверждение: $response")
-            return
+        // 6. Для всех остальных ответов - просто логируем (только если не OK)
+        if (!response.contains("OK", ignoreCase = true)) {
+            LogStorageManager.logMessage("Ответ: $response")
         }
-        
-        // 7. Для всех остальных ответов - просто логируем
-        LogStorageManager.logMessage("Ответ от устройства: $response")
     }
 
     private fun displayData(data: String) {
-        if (data.isBlank()) {
-            LogStorageManager.logMessage("Данные: пусто")
-        } else {
-            LogStorageManager.logMessage("Данные получены: ${data.length} символов")
+        if (data.isNotBlank()) {
+            LogStorageManager.logMessage("Данные: ${data.length} символов")
         }
     }
 
@@ -583,7 +529,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        Log.d(TAG, "onResume called, shouldCheckPermissionsOnResume: $shouldCheckPermissionsOnResume")
         
         // Only auto-open device list if returning from settings with permissions granted
         if (!shouldCheckPermissionsOnResume) return

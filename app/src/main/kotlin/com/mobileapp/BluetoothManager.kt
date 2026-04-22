@@ -103,7 +103,7 @@ class BluetoothManager private constructor(
                 if (bluetoothSocket == null) {
                     throw IOException("Failed to create socket")
                 }
-                LogStorageManager.logMessage("Попытка подключения к ${device.name}...")
+                LogStorageManager.logMessage("Подключение к ${device.name}...")
                 bluetoothSocket?.connect()
                 outputStream = bluetoothSocket?.outputStream
                 inputStream = BufferedReader(InputStreamReader(bluetoothSocket?.inputStream))
@@ -119,11 +119,11 @@ class BluetoothManager private constructor(
                 startReading()
             } catch (e: IOException) {
                 Log.e(TAG, "Connection error: ${e.message}")
-                LogStorageManager.logMessage("Ошибка подключения: ${e.message}")
+                LogStorageManager.logMessage("Ошибка: ${e.message}")
                 handler.post { onError("Ошибка подключения: ${e.message}") }
             } catch (e: SecurityException) {
                 Log.e(TAG, "Security error: ${e.message}")
-                LogStorageManager.logMessage("Ошибка безопасности (нет разрешений): ${e.message}")
+                LogStorageManager.logMessage("Ошибка безопасности")
                 handler.post { onError("Ошибка безопасности: нет разрешений для доступа к Bluetooth") }
             }
         }.start()
@@ -152,12 +152,11 @@ class BluetoothManager private constructor(
     @SuppressLint("MissingPermission")
     fun disconnect() {
         try {
-            LogStorageManager.logMessage("Закрытие соединения...")
+            
             bluetoothSocket?.close()
             readThread?.interrupt()
         } catch (e: IOException) {
             Log.e(TAG, "Error closing socket: ${e.message}")
-            LogStorageManager.logMessage("Ошибка при закрытии соединения: ${e.message}")
         } finally {
             isConnected = false
             connectedDevice = null
@@ -168,15 +167,13 @@ class BluetoothManager private constructor(
     @SuppressLint("MissingPermission")
     fun sendCommand(command: String) {
         try {
-            // Append CRLF newline character as many Bluetooth devices expect it
             val commandWithNewline = if (command.endsWith("\r\n") || command.endsWith("\n")) command else "$command\r\n"
-            Log.d(TAG, "Отправка команды: $commandWithNewline")
-            LogStorageManager.logMessage("Отправлено: ${commandWithNewline.trim()}")
+            Log.d(TAG, "Sent: $commandWithNewline")
             outputStream?.write(commandWithNewline.toByteArray())
             outputStream?.flush()
         } catch (e: IOException) {
             Log.e(TAG, "Send error: ${e.message}")
-            LogStorageManager.logMessage("Ошибка отправки: ${e.message}")
+            LogStorageManager.logMessage("Ошибка: ${e.message}")
             handler.post { onError("Ошибка отправки: ${e.message}") }
         }
     }

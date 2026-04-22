@@ -46,8 +46,7 @@ class DeviceListActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "DeviceListActivity onCreate")
-        LogStorageManager.logMessage("Открытие экрана выбора устройства")
+        LogStorageManager.logMessage("Выбор устройства")
 
         try {
             setContentView(R.layout.activity_device_list)
@@ -104,10 +103,8 @@ class DeviceListActivity : AppCompatActivity() {
 
     private fun checkPermissionsAndLoadDevices() {
         if (checkPermissions()) {
-            LogStorageManager.logMessage("Разрешения получены, загрузка устройств...")
             loadDevices()
         } else {
-            LogStorageManager.logMessage("Запрос разрешений для доступа к Bluetooth...")
             requestPermissions()
         }
     }
