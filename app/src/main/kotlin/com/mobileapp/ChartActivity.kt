@@ -156,7 +156,7 @@ class ChartActivity : AppCompatActivity() {
                 setLabelRotationAngle(-90f)
                 labelCount = 10
                 valueFormatter = object : ValueFormatter() {
-                    private val format = SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
+                    private val format = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
                     override fun getFormattedValue(value: Float): String {
                         return try { format.format(Date(value.toLong())) } catch (e: Exception) { "" }
                     }

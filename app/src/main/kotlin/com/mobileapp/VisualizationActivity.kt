@@ -33,6 +33,7 @@ class VisualizationActivity : AppCompatActivity() {
     private lateinit var btnMonth: Button
     private lateinit var btnYear: Button
     private lateinit var btnExportPdf: Button
+    private lateinit var btnResetPeriod: Button
     
     private var selectedDay: Long? = null
     private var selectedMonth: Long? = null
@@ -74,6 +75,7 @@ class VisualizationActivity : AppCompatActivity() {
         btnMonth = findViewById(R.id.btnMonth)
         btnYear = findViewById(R.id.btnYear)
         btnExportPdf = findViewById(R.id.btnExportPdf)
+        btnResetPeriod = findViewById(R.id.btnResetPeriod)
 
         setupParamsList()
         setupDatePickers()
@@ -81,6 +83,7 @@ class VisualizationActivity : AppCompatActivity() {
         setupShowTable()
         setupPeriodButtons()
         setupDayMonthYear()
+        setupResetPeriod()
         setupPdfExport()
         setupBottomNavigation()
     }
@@ -106,25 +109,8 @@ class VisualizationActivity : AppCompatActivity() {
     }
 
     private fun setupDatePickers() {
-        btnFromDate.setOnClickListener {
-            val info = csvInfo ?: return@setOnClickListener
-            val allTimestamps = info.dataPoints.map { it.timestamp }.sorted()
-            showPeriodPicker("Выберите дату", allTimestamps) { ts ->
-                fromTimestamp = ts
-                btnFromDate.text = formatDate(ts)
-                LogStorageManager.logMessage("Визуализация: дата ОТ - ${formatDate(ts)}")
-            }
-        }
-        
-        btnToDate.setOnClickListener {
-            val info = csvInfo ?: return@setOnClickListener
-            val allTimestamps = info.dataPoints.map { it.timestamp }.sorted()
-            showPeriodPicker("Выберите дату", allTimestamps) { ts ->
-                toTimestamp = ts
-                btnToDate.text = formatDate(ts)
-                LogStorageManager.logMessage("Визуализация: дата ДО - ${formatDate(ts)}")
-            }
-        }
+        // Кнопки btnFromDate и btnToDate теперь только для отображения
+        // Период выбирается через кнопки День, Месяц, Год
     }
 
     private fun showDatePickerDialog(initialTimestamp: Long, onSelected: (Long) -> Unit) {
@@ -368,6 +354,36 @@ class VisualizationActivity : AppCompatActivity() {
             .setNegativeButton("Отмена", null)
             .show()
     }
+    
+    private fun setupResetPeriod() {
+        btnResetPeriod.setOnClickListener {
+            val csvInfo = this.csvInfo ?: return@setOnClickListener
+            val minTime = csvInfo.dataPoints.minOf { it.timestamp }
+            val maxTime = csvInfo.dataPoints.maxOf { it.timestamp }
+            
+            val calendar = java.util.Calendar.getInstance()
+            calendar.timeInMillis = minTime
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+            calendar.set(java.util.Calendar.SECOND, 0)
+            calendar.set(java.util.Calendar.MILLISECOND, 0)
+            val startOfRange = calendar.timeInMillis
+            
+            calendar.timeInMillis = maxTime
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+            calendar.set(java.util.Calendar.MINUTE, 59)
+            calendar.set(java.util.Calendar.SECOND, 59)
+            calendar.set(java.util.Calendar.MILLISECOND, 999)
+            val endOfRange = calendar.timeInMillis
+            
+            fromTimestamp = startOfRange
+            toTimestamp = endOfRange
+            btnFromDate.text = formatDate(startOfRange)
+            btnToDate.text = formatDate(endOfRange)
+            clearPeriodSelections()
+            Toast.makeText(this, "Период сброшен", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private fun loadCsv() {
         csvInfo = CsvDataParser.parseCsvFile(filePath)
@@ -384,12 +400,28 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
         
         val minTime = csvInfo!!.dataPoints.minOf { it.timestamp }
         val maxTime = csvInfo!!.dataPoints.maxOf { it.timestamp }
-        btnFromDate.text = formatDate(minTime)
-        btnToDate.text = formatDate(maxTime)
-        fromTimestamp = minTime
-        toTimestamp = maxTime
         
-        LogStorageManager.logMessage("Визуализация: Диапазон дат файла: ${formatDate(minTime)} - ${formatDate(maxTime)}")
+        val calendar = java.util.Calendar.getInstance()
+        calendar.timeInMillis = minTime
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        val startOfRange = calendar.timeInMillis
+        
+        calendar.timeInMillis = maxTime
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        calendar.set(java.util.Calendar.MINUTE, 59)
+        calendar.set(java.util.Calendar.SECOND, 59)
+        calendar.set(java.util.Calendar.MILLISECOND, 999)
+        val endOfRange = calendar.timeInMillis
+        
+        btnFromDate.text = formatDate(startOfRange)
+        btnToDate.text = formatDate(endOfRange)
+        fromTimestamp = startOfRange
+        toTimestamp = endOfRange
+        
+        LogStorageManager.logMessage("Визуализация: Диапазон дат файла: ${formatDate(startOfRange)} - ${formatDate(endOfRange)}")
     }
     
     private fun setupDayMonthYear() {
@@ -465,47 +497,69 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
     }
     
     private fun applyDaySelection(dayStr: String) {
-        val csvInfo = this.csvInfo ?: return
         val dayFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         val parseDate = dayFormat.parse(dayStr) ?: return
-        val startOfDay = parseDate.time
-        val endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1
+        
+        val calendar = java.util.Calendar.getInstance()
+        calendar.time = parseDate
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        val startOfDay = calendar.timeInMillis
+        
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        calendar.set(java.util.Calendar.MINUTE, 59)
+        calendar.set(java.util.Calendar.SECOND, 59)
+        calendar.set(java.util.Calendar.MILLISECOND, 999)
+        val endOfDay = calendar.timeInMillis
         
         fromTimestamp = startOfDay
         toTimestamp = endOfDay
-        btnFromDate.text = dayFormat.format(Date(startOfDay))
-        btnToDate.text = dayFormat.format(Date(endOfDay))
+        btnFromDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(startOfDay))
+        btnToDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(endOfDay))
     }
     
     private fun applyMonthSelection(monthStr: String) {
-        val csvInfo = this.csvInfo ?: return
         val parseFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
         val monthDate = parseFormat.parse(monthStr) ?: return
+        
         val calendar = java.util.Calendar.getInstance()
         calendar.time = monthDate
         calendar.set(java.util.Calendar.DAY_OF_MONTH, 1)
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
         val startOfMonth = calendar.timeInMillis
+        
         calendar.add(java.util.Calendar.MONTH, 1)
-        val endOfMonth = calendar.timeInMillis - 1
+        calendar.add(java.util.Calendar.SECOND, -1)
+        val endOfMonth = calendar.timeInMillis
         
         fromTimestamp = startOfMonth
         toTimestamp = endOfMonth
-        btnFromDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(startOfMonth))
-        btnToDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(endOfMonth))
+        btnFromDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(startOfMonth))
+        btnToDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(endOfMonth))
     }
     
     private fun applyYearSelection(yearStr: String) {
         val year = yearStr.toIntOrNull() ?: return
+        
         val calendar = java.util.Calendar.getInstance()
         calendar.set(year, 0, 1, 0, 0, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
         val startOfYear = calendar.timeInMillis
+        
         calendar.set(year + 1, 0, 1, 0, 0, 0)
-        val endOfYear = calendar.timeInMillis - 1
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        calendar.add(java.util.Calendar.SECOND, -1)
+        val endOfYear = calendar.timeInMillis
         
         fromTimestamp = startOfYear
         toTimestamp = endOfYear
-        btnFromDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(startOfYear))
-        btnToDate.text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(endOfYear))
+        btnFromDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(startOfYear))
+        btnToDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(endOfYear))
     }
     
 private fun showSelectionDialog(title: String, items: List<String>, onSelect: (String) -> Unit) {
@@ -537,7 +591,7 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
     }
 
     private fun formatDate(ts: Long): String {
-        return SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(ts))
+        return SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(ts))
     }
     
     private fun setupPdfExport() {
@@ -591,7 +645,7 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                         setLabelRotationAngle(-90f)
                         labelCount = 10
                         valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                            private val format = java.text.SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
+                            private val format = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
                             override fun getFormattedValue(value: Float): String {
                                 return try { format.format(Date(value.toLong())) } catch (e: Exception) { "" }
                             }
