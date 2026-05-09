@@ -291,7 +291,7 @@ class ChartActivity : AppCompatActivity() {
             chart.moveViewToX(xMin)
         }
         
-        LogStorageManager.logMessage("График: построен")
+        LogStorageManager.logMessage("График построен")
     }
     
     private fun exportToPdf() {

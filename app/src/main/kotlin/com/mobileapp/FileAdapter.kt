@@ -43,7 +43,12 @@ class FileAdapter(
             tvInfo.text = "${dateFormat.format(Date(file.downloadedAt))}, $sizeStr"
 
             btnDownload.setOnClickListener { onDownloadClick(file) }
-            btnVisualize.setOnClickListener { onVisualizeClick(file) }
+            if (file.fileName.lowercase().endsWith(".txt")) {
+                btnVisualize.visibility = View.GONE
+            } else {
+                btnVisualize.visibility = View.VISIBLE
+                btnVisualize.setOnClickListener { onVisualizeClick(file) }
+            }
             btnDelete.setOnClickListener { onDeleteClick(file) }
         }
         

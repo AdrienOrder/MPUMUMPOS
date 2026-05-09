@@ -39,6 +39,13 @@ class BluetoothManager private constructor(
         @Volatile
         private var sharedOnError: ((String) -> Unit)? = null
         
+        @Volatile
+        private var additionalHandler: ((String) -> Unit)? = null
+        
+        fun setAdditionalHandler(handler: ((String) -> Unit)?) {
+            additionalHandler = handler
+        }
+        
         fun getInstance(
             handler: Handler,
             onConnected: (BluetoothDevice) -> Unit,
@@ -135,7 +142,10 @@ class BluetoothManager private constructor(
                 while (isConnected && !Thread.currentThread().isInterrupted) {
                     val line = inputStream?.readLine()
                 if (line != null) {
-                    handler.post { onMessageReceived(line) }
+                    handler.post {
+                        onMessageReceived(line)
+                        additionalHandler?.invoke(line)
+                    }
                 }
                 }
             } catch (e: IOException) {

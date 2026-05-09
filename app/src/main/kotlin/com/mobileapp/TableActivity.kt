@@ -57,7 +57,7 @@ class TableActivity : AppCompatActivity() {
         fromTimestamp = intent.getLongExtra(EXTRA_FROM_DATE, 0)
         toTimestamp = intent.getLongExtra(EXTRA_TO_DATE, 0)
 
-        LogStorageManager.logMessage("Таблица: $fileName, ${selectedParams.size} пар.")
+        LogStorageManager.logMessage("Таблица: $fileName, ${selectedParams.size} параметров")
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { 
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()

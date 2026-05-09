@@ -21,13 +21,16 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
 
         // Команды для устройства
-        private const val CMD_SET_INTERVAL = "SET interval "
-        private const val CMD_SET_START = "SET start "
-        private const val CMD_SET_TIME = "SET time "
-        private const val CMD_GET_DATA = "GET data"
-        private const val CMD_GET_INTERVAL = "GET interval"
-        private const val CMD_GET_START = "GET start"
-        private const val CMD_GET_TIME = "GET time"
+        const val CMD_SET_INTERVAL = "SET interval "
+        const val CMD_SET_START = "SET start "
+        const val CMD_SET_TIME = "SET time "
+        const val CMD_GET_DATA = "GET data"
+        const val CMD_GET_INTERVAL = "GET interval"
+        const val CMD_GET_START = "GET start"
+        const val CMD_GET_TIME = "GET time"
+        const val CMD_ADD_SENSOR = "ADD sensor "
+        const val CMD_DEL_SENSOR = "DEL sensor "
+        const val CMD_GET_SENSORS = "GET sensors"
 
         // Конвертация минут в формат ДД:ЧЧ:ММ
         fun minutesToDDHHMM(totalMinutes: Int): String {
@@ -59,6 +62,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var deviceTimeText: TextView
     private lateinit var btnSyncTime: Button
     private lateinit var btnDownloadStorage: Button
+    private lateinit var btnSensors: Button
 
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var dialogManager: DialogManager
@@ -147,6 +151,7 @@ class MainActivity : AppCompatActivity() {
         deviceTimeText = findViewById(R.id.tvDeviceTime)
         btnSyncTime = findViewById(R.id.btnSyncTime)
         btnDownloadStorage = findViewById(R.id.btnDownloadStorage)
+        btnSensors = findViewById(R.id.btnSensors)
     }
 
     // Views to hide/show
@@ -288,8 +293,36 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnDownloadStorage.setOnClickListener {
-            Toast.makeText(this, "Функциональность пока не реализована (реальное устройство не существует)", Toast.LENGTH_SHORT).show()
-            LogStorageManager.logMessage("Кнопка СКАЧАТЬ ДАННЫЕ ИЗ ХРАНИЛИЩА пока неактивна - реальное устройство не существует")
+            if (!bluetoothManager.isConnected()) {
+                Toast.makeText(this, R.string.toast_connect_first, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val device = bluetoothManager.getConnectedDevice()
+            DataSaveHelper.startCollecting(device?.address ?: "", device?.name ?: "")
+            LogStorageManager.logMessage("Запрос данных с устройства...")
+            bluetoothManager.sendCommand(CMD_GET_DATA)
+            Toast.makeText(this, "Ожидание данных...", Toast.LENGTH_SHORT).show()
+            handler.postDelayed({
+                if (DataSaveHelper.hasData()) {
+                    DataSaveHelper.saveFiles(this)
+                    Toast.makeText(this, "Данные сохранены в хранилище", Toast.LENGTH_SHORT).show()
+                } else {
+                    LogStorageManager.logMessage("Сбор данных: ответ не получен")
+                    Toast.makeText(this, "Данные не получены от устройства", Toast.LENGTH_SHORT).show()
+                }
+            }, 5000)
+        }
+        
+        btnSensors.setOnClickListener {
+            if (!bluetoothManager.isConnected()) {
+                Toast.makeText(this, R.string.toast_connect_first, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val device = bluetoothManager.getConnectedDevice()
+            startActivity(Intent(this, SensorActivity::class.java).apply {
+                putExtra("device_mac", device?.address ?: "")
+                putExtra("device_name", device?.name ?: "Устройство")
+            })
         }
 
         findViewById<ImageButton>(R.id.btnLogs).setOnClickListener {
@@ -315,7 +348,6 @@ class MainActivity : AppCompatActivity() {
         btnEditParams.isEnabled = enabled
         btnSyncTime.isEnabled = enabled
         btnDownloadStorage.isEnabled = enabled
-        // btnDownloadStorage оставлен выключенным - функциональность пока не реализована
     }
 
     private fun updateUIState(connected: Boolean) {
@@ -452,7 +484,7 @@ class MainActivity : AppCompatActivity() {
     private fun syncTime() {
         val currentTime = SimpleDateFormat("HH:mm dd.MM.yyyy", Locale.getDefault()).format(Date())
         bluetoothManager.sendCommand(CMD_SET_TIME + currentTime)
-        LogStorageManager.logMessage("Время синхр: $currentTime")
+        LogStorageManager.logMessage("Время синхронизировано: $currentTime")
         
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_GET_TIME)
@@ -513,7 +545,19 @@ class MainActivity : AppCompatActivity() {
             return
         }
         
-        // 6. Для всех остальных ответов - просто логируем (только если не OK)
+        // 6. Поток данных с устройства (!info: / !data:)
+        if (DataSaveHelper.processLine(response)) {
+            return
+        }
+
+        // 7. OK после получения данных - завершаем и сохраняем
+        if (response.trim().equals("OK", ignoreCase = true) && DataSaveHelper.hasData()) {
+            DataSaveHelper.saveFiles(this)
+            Toast.makeText(this, "Данные сохранены в хранилище", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 8. Для всех остальных ответов - просто логируем (только если не OK)
         if (!response.contains("OK", ignoreCase = true)) {
             LogStorageManager.logMessage("Ответ: $response")
         }

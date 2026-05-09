@@ -298,18 +298,31 @@
                     android:textStyle="bold"
                     style="@style/Widget.MobileApp.Button" />
 
-                <!-- Кнопка скачивания данных из хранилища - НЕАКТИВНА (фон синий, текст серый) -->
+                <!-- Кнопка скачивания данных из хранилища -->
                 <Button
                     android:id="@+id/btnDownloadStorage"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
+                    android:layout_marginBottom="12dp"
                     android:background="@drawable/button_background"
-                    android:enabled="false"
                     android:text="@string/download_storage"
                     android:textAllCaps="false"
-                    android:textColor="@color/gray_500"
+                    android:textColor="@color/white"
                     android:textSize="16sp"
-                    android:textStyle="normal"
+                    android:textStyle="bold"
+                    style="@style/Widget.MobileApp.Button" />
+
+                <!-- Кнопка работы с датчиками устройства -->
+                <Button
+                    android:id="@+id/btnSensors"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/button_background"
+                    android:text="@string/sensors_work"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
                     style="@style/Widget.MobileApp.Button" />
             </LinearLayout>
 

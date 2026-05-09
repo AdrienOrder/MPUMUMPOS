@@ -35,6 +35,22 @@ class FileListActivity : AppCompatActivity() {
 
         setupUI()
         loadFiles()
+        setupBottomNavigation()
+    }
+
+    private fun setupBottomNavigation() {
+        findViewById<View>(R.id.btnLogs)?.setOnClickListener {
+            startActivity(Intent(this, LogDisplayActivity::class.java))
+            finish()
+        }
+        findViewById<View>(R.id.btnHome)?.setOnClickListener {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+        }
+        findViewById<View>(R.id.btnStorage)?.setOnClickListener {
+            startActivity(Intent(this, StorageActivity::class.java))
+            finish()
+        }
     }
 
     private fun setupUI() {
@@ -46,10 +62,14 @@ class FileListActivity : AppCompatActivity() {
                 downloadFile(file)
             },
             onVisualizeClick = { file ->
-                startActivity(Intent(this, VisualizationActivity::class.java).apply {
-                    putExtra("file_path", file.filePath)
-                    putExtra("file_name", file.fileName)
-                })
+                if (file.fileName.lowercase().endsWith(".txt")) {
+                    Toast.makeText(this, "Информационный файл, визуализация недоступна", Toast.LENGTH_SHORT).show()
+                } else {
+                    startActivity(Intent(this, VisualizationActivity::class.java).apply {
+                        putExtra("file_path", file.filePath)
+                        putExtra("file_name", file.fileName)
+                    })
+                }
             },
             onDeleteClick = { file ->
                 val dialogView = LinearLayout(this).apply {
@@ -100,16 +120,16 @@ class FileListActivity : AppCompatActivity() {
     private fun downloadFile(file: CsvFile) {
         try {
             val sourceFile = File(file.filePath)
-            
+
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val mpumFolder = File(downloadsDir, "MPUMUMPOS Downloads")
             if (!mpumFolder.exists()) mpumFolder.mkdirs()
-            
-            var baseName = file.fileName.substringBeforeLast(".csv")
-            var ext = ".csv"
+
+            val ext = if (file.fileName.lowercase().endsWith(".txt")) ".txt" else ".csv"
+            val baseName = file.fileName.substringBeforeLast(if (ext == ".txt") ".txt" else ".csv")
             var destFile = File(mpumFolder, file.fileName)
             var version = 1
-            
+
             while (destFile.exists()) {
                 destFile = File(mpumFolder, "$baseName ($version)$ext")
                 version++

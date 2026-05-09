@@ -5,10 +5,12 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.mobileapp.data.Device
@@ -64,7 +66,7 @@ class StorageActivity : AppCompatActivity() {
             inputStream.close()
             
             if (firstLine.isNullOrBlank() || !firstLine.contains(",")) {
-                LogStorageManager.logMessage("Ошибка: не CSV файл")
+                LogStorageManager.logMessage("Ошибка импорта: выбранный файл не является CSV файлом")
                 Toast.makeText(this, "Это не CSV файл", Toast.LENGTH_SHORT).show()
                 return
             }
@@ -174,13 +176,21 @@ class StorageActivity : AppCompatActivity() {
         adapter.submitList(devices)
         findViewById<View>(R.id.tvEmpty).visibility = if (devices.isEmpty()) View.VISIBLE else View.GONE
         
-        LogStorageManager.logMessage("Хранилище: $importedCount имп., ${allDevices.size} устр.")
+        val deviceDownloadedCount = allDevices.sumOf { device -> dbManager.getCsvFilesForDevice(device.id).size }
+        LogStorageManager.logMessage("Хранилище: импортировано из Загрузок: $importedCount файлов, скачано с устройств: $deviceDownloadedCount файлов, всего устройств: ${allDevices.size}")
     }
 
     private fun showDeleteDialog(device: Device) {
         if (device.id == 0L) {
+            val titleView = TextView(this).apply {
+                text = "Удалить файлы"
+                setTextColor(ContextCompat.getColor(this@StorageActivity, R.color.blue_500))
+                textSize = 18f
+                gravity = android.view.Gravity.CENTER
+                setPadding(0, 40, 0, 20)
+            }
             AlertDialog.Builder(this)
-                .setTitle("Удалить файлы")
+                .setCustomTitle(titleView)
                 .setMessage("Удалить все импортированные файлы?")
                 .setPositiveButton("Удалить") { _, _ ->
                     val files = dbManager.getCsvFilesForDevice(0)
@@ -192,8 +202,15 @@ class StorageActivity : AppCompatActivity() {
                 .setNegativeButton("Отмена", null)
                 .show()
         } else {
+            val titleView = TextView(this).apply {
+                text = "Удалить устройство"
+                setTextColor(ContextCompat.getColor(this@StorageActivity, R.color.blue_500))
+                textSize = 18f
+                gravity = android.view.Gravity.CENTER
+                setPadding(0, 40, 0, 20)
+            }
             AlertDialog.Builder(this)
-                .setTitle("Удалить устройство")
+                .setCustomTitle(titleView)
                 .setMessage("Удалить ${device.name} и все его файлы?")
                 .setPositiveButton("Удалить") { _, _ ->
                     dbManager.deleteDevice(device.id)

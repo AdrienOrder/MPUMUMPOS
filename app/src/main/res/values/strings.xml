@@ -21,6 +21,7 @@
     <string name="button_confirm">ПОДТВЕРДИТЬ ИЗМЕНЕНИЯ</string>
     <string name="button_sync_time">СИНХРОНИЗИРОВАТЬ ТЕКУЩЕЕ ВРЕМЯ</string>
     <string name="download_storage">СКАЧАТЬ ДАННЫЕ В ХРАНИЛИЩЕ</string>
+    <string name="sensors_work">РАБОТА С ДАТЧИКАМИ УСТРОЙСТВА</string>
 
     <!-- LOGACTIVITY -->
     <string name="log_label">Лог операций</string>
