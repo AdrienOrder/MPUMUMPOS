@@ -118,49 +118,87 @@ object CsvDataParser {
     private fun parseDeviceDataFormat(fileName: String, lines: List<String>): CsvFileInfo {
         val paramNames = mutableSetOf<String>()
         val dataPoints = mutableListOf<CsvDataPoint>()
-        val deviceDateFormat = SimpleDateFormat("yyyy/M/d", Locale.US)
+        val deviceDateFormats = listOf(
+            SimpleDateFormat("yy/M/d", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("yy.M.d", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("yy-M-d", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("yyyy/M/d", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("M/d/yyyy", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("d/M/yyyy", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("dd.MM.yyyy", Locale.US).apply { isLenient = false }
+        )
+
+        val deviceTimeFormats = listOf(
+            SimpleDateFormat("H:mm", Locale.US).apply { isLenient = false },
+            SimpleDateFormat("H:m", Locale.US).apply { isLenient = false }
+        )
 
         for (line in lines) {
             if (line.isBlank()) continue
 
             val commaIdx = line.indexOf(',')
-            if (commaIdx < 0) continue
+            if (commaIdx < 0) {
+                val semiIdx = line.indexOf(';')
+                val dataPart = if (semiIdx >= 0) line.substring(semiIdx + 1) else line
+                parseDataPairs(dataPart, paramNames)?.let { values ->
+                    dataPoints.add(CsvDataPoint(System.currentTimeMillis(), values))
+                }
+                continue
+            }
 
             val datePart = line.substring(0, commaIdx).trim()
             val rest = line.substring(commaIdx + 1)
 
             val semiIdx = rest.indexOf(';')
-            val timePart = if (semiIdx >= 0) rest.substring(0, semiIdx).trim() else rest.trim()
-            val dataPart = if (semiIdx >= 0) rest.substring(semiIdx + 1) else ""
+            val timePart = if (semiIdx >= 0) rest.substring(0, semiIdx).trim() else ""
+            val dataPart = if (semiIdx >= 0) rest.substring(semiIdx + 1) else rest
 
-            val timeMinutes = timePart.replace("/0", ":00")
-            val timeStr = timeMinutes.replace("/", ":")
+            val normalizedTime = timePart
+                .replace("/0", ":00")
+                .replace("/", ":")
 
-            val timestamp = parseDeviceTimestamp(deviceDateFormat, datePart, timeStr)
-            if (timestamp == null) continue
+            var timestamp: Long? = null
+            for (df in deviceDateFormats) {
+                for (tf in deviceTimeFormats) {
+                    try {
+                        val date = df.parse(datePart) ?: continue
+                        val cal = java.util.Calendar.getInstance()
+                        cal.time = date
+                        if (normalizedTime.isNotBlank()) {
+                            val time = tf.parse(normalizedTime) ?: continue
+                            val tc = java.util.Calendar.getInstance()
+                            tc.time = time
+                            cal.set(java.util.Calendar.HOUR_OF_DAY, tc.get(java.util.Calendar.HOUR_OF_DAY))
+                            cal.set(java.util.Calendar.MINUTE, tc.get(java.util.Calendar.MINUTE))
+                            cal.set(java.util.Calendar.SECOND, 0)
+                        }
+                        timestamp = cal.timeInMillis
+                        break
+                    } catch (_: Exception) { continue }
+                }
+                if (timestamp != null) break
+            }
 
-            val numericValues = mutableMapOf<String, Double>()
-            if (dataPart.isNotBlank()) {
-                val pairs = dataPart.split(";")
-                for (pair in pairs) {
-                    val colonIdx = pair.indexOf(':')
-                    if (colonIdx < 0) continue
-
-                    val key = pair.substring(0, colonIdx).trim()
-                    val rawValue = pair.substring(colonIdx + 1).trim()
-
-                    val paramName = extractParamName(key)
-                    val value = rawValue.replace(",", ".").toDoubleOrNull()
-                    if (value != null) {
-                        numericValues[paramName] = value
-                        paramNames.add(paramName)
+            if (timestamp == null) {
+                try {
+                    val cal = java.util.Calendar.getInstance()
+                    if (normalizedTime.isNotBlank()) {
+                        val timeParts = normalizedTime.split(":")
+                        if (timeParts.size >= 2) {
+                            cal.set(java.util.Calendar.HOUR_OF_DAY, timeParts[0].toIntOrNull() ?: 0)
+                            cal.set(java.util.Calendar.MINUTE, timeParts[1].toIntOrNull() ?: 0)
+                            cal.set(java.util.Calendar.SECOND, 0)
+                        }
                     }
+                    timestamp = cal.timeInMillis
+                } catch (_: Exception) {
+                    continue
                 }
             }
 
-            if (numericValues.isNotEmpty()) {
-                dataPoints.add(CsvDataPoint(timestamp, numericValues))
-            }
+            val values = parseDataPairs(dataPart, paramNames) ?: continue
+            dataPoints.add(CsvDataPoint(timestamp, values))
         }
 
         if (dataPoints.isNotEmpty()) {
@@ -178,6 +216,26 @@ object CsvDataParser {
         )
     }
 
+    private fun parseDataPairs(dataPart: String, paramNames: MutableSet<String>): Map<String, Double>? {
+        if (dataPart.isBlank()) return null
+        val numericValues = mutableMapOf<String, Double>()
+        val pairs = dataPart.split(";")
+        for (pair in pairs) {
+            if (pair.isBlank()) continue
+            val colonIdx = pair.indexOf(':')
+            if (colonIdx < 0) continue
+            val key = pair.substring(0, colonIdx).trim()
+            val rawValue = pair.substring(colonIdx + 1).trim()
+            val paramName = extractParamName(key)
+            val value = rawValue.replace(",", ".").toDoubleOrNull()
+            if (value != null) {
+                numericValues[paramName] = value
+                paramNames.add(paramName)
+            }
+        }
+        return if (numericValues.isNotEmpty()) numericValues else null
+    }
+
     private fun extractParamName(key: String): String {
         val trimmed = key.trim()
         if (trimmed.isEmpty()) return key
@@ -186,27 +244,6 @@ object CsvDataParser {
         val sensorId = trimmed.substring(0, letterIdx)
         val paramName = trimmed.substring(letterIdx)
         return "$sensorId: $paramName"
-    }
-
-    private fun parseDeviceTimestamp(dateFormat: SimpleDateFormat, dateStr: String, timeStr: String): Long? {
-        return try {
-            val date = dateFormat.parse(dateStr) ?: return null
-            val cal = java.util.Calendar.getInstance()
-            cal.time = date
-
-            if (timeStr.isNotBlank()) {
-                val timeParts = timeStr.split(":")
-                if (timeParts.size >= 2) {
-                    cal.set(java.util.Calendar.HOUR_OF_DAY, timeParts[0].toIntOrNull() ?: 0)
-                    cal.set(java.util.Calendar.MINUTE, timeParts[1].toIntOrNull() ?: 0)
-                    cal.set(java.util.Calendar.SECOND, 0)
-                }
-            }
-
-            cal.timeInMillis
-        } catch (e: Exception) {
-            null
-        }
     }
 
     private fun formatDate(ts: Long): String {

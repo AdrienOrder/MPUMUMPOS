@@ -38,10 +38,12 @@ class DeviceAdapter(
 
             // Show/hide buttons based on device type
             if (device.id == 0L) {
-                // Imported - only show Open
-                btnDelete.visibility = View.GONE
+                // Imported
+                btnDelete.text = "Очистить"
+                btnDelete.visibility = View.VISIBLE
                 btnOpen.text = "Открыть"
             } else {
+                btnDelete.text = "Удалить"
                 btnDelete.visibility = View.VISIBLE
                 btnOpen.text = "Открыть"
             }

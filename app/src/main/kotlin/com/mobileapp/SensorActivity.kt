@@ -5,9 +5,9 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.NumberPicker
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -69,7 +69,7 @@ class SensorActivity : AppCompatActivity() {
     private fun processSensorResponse(response: String) {
         val trimmed = response.trim()
 
-        if (trimmed.contains("Список датчиков пуст", ignoreCase = true)) {
+        if (trimmed.contains("Список датчиков пуст", ignoreCase = true) || trimmed.contains("Пусто", ignoreCase = true)) {
             status2RetryCount = 0
             runOnUiThread {
                 sensorList.clear()
@@ -114,6 +114,10 @@ class SensorActivity : AppCompatActivity() {
         if (trimmed.startsWith("OK", ignoreCase = true)) {
             runOnUiThread {
                 LogStorageManager.logMessage("Датчик: $trimmed")
+                if (trimmed.contains("добавлен", ignoreCase = true)) {
+                    status2RetryCount = 0
+                    requestSensorsList()
+                }
             }
             return
         }
@@ -159,36 +163,119 @@ class SensorActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnRefreshSensors)?.setOnClickListener {
             requestSensorsList()
         }
+
+        findViewById<Button>(R.id.btnDeleteAllSensors)?.setOnClickListener {
+            showDeleteAllSensorsDialog()
+        }
     }
 
-    private fun showAddSensorDialog() {
-        val inputEditText = EditText(this).apply {
-            hint = "Введите ID датчика"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setPadding(48, 32, 48, 32)
+    private fun showDeleteAllSensorsDialog() {
+        if (sensorList.isEmpty()) {
+            Toast.makeText(this, "Нет датчиков для удаления", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        val dialogView = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(60, 40, 60, 20)
-            addView(TextView(context).apply {
-                text = "Ввод ID датчика"
-                setTextColor(ContextCompat.getColor(context, R.color.blue_500))
-                textSize = 20f
-                gravity = android.view.Gravity.CENTER
-            })
-            addView(inputEditText)
+        val titleView = TextView(this).apply {
+            text = "Удалить все датчики?"
+            setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+            textSize = 18f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 40, 0, 20)
+        }
+
+        val msgView = TextView(this).apply {
+            text = "Будет удалено ${sensorList.size} датчиков"
+            textSize = 16f
+            gravity = android.view.Gravity.CENTER
+            setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.white))
         }
 
         AlertDialog.Builder(this)
-            .setView(dialogView)
+            .setCustomTitle(titleView)
+            .setView(msgView)
             .setPositiveButton("ПОДТВЕРДИТЬ") { _, _ ->
-                val sensorId = inputEditText.text.toString().trim()
-                if (sensorId.isNotEmpty()) {
-                    addSensor(sensorId)
+                val idsToDelete = sensorList.map { it.id }
+                sensorList.clear()
+                updateSensorList()
+                bluetoothManager?.sendCommand(MainActivity.CMD_DEL_SENSORS)
+            }
+            .setNegativeButton("ОТМЕНА", null)
+            .create()
+            .apply {
+                setOnShowListener {
+                    getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+                    getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+                }
+            }
+            .show()
+    }
+
+    private fun showAddSensorDialog() {
+        val picker1 = NumberPicker(this).apply {
+            minValue = 0; maxValue = 9; value = 0; wrapSelectorWheel = false
+        }
+        val picker2 = NumberPicker(this).apply {
+            minValue = 0; maxValue = 9; value = 0; wrapSelectorWheel = false
+        }
+        val picker3 = NumberPicker(this).apply {
+            minValue = 0; maxValue = 9; value = 0; wrapSelectorWheel = false
+        }
+
+        val titleView = TextView(this).apply {
+            text = "Ввод ID датчика"
+            setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+            textSize = 18f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 40, 0, 20)
+        }
+
+        val col1 = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = android.view.Gravity.CENTER
+            addView(picker1)
+        }
+        val sep1 = TextView(this).apply {
+            text = ":"; textSize = 20f; gravity = android.view.Gravity.CENTER
+            setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 40, 0, 0) }
+        }
+        val col2 = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = android.view.Gravity.CENTER
+            addView(picker2)
+        }
+        val sep2 = TextView(this).apply {
+            text = ":"; textSize = 20f; gravity = android.view.Gravity.CENTER
+            setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 40, 0, 0) }
+        }
+        val col3 = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = android.view.Gravity.CENTER
+            addView(picker3)
+        }
+
+        val pickersLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER
+            addView(col1); addView(sep1); addView(col2); addView(sep2); addView(col3)
+        }
+
+        AlertDialog.Builder(this)
+            .setCustomTitle(titleView)
+            .setView(pickersLayout)
+            .setPositiveButton("ПОДТВЕРДИТЬ") { _, _ ->
+                val id = picker1.value * 100 + picker2.value * 10 + picker3.value
+                if (id == 0) {
+                    Toast.makeText(this, "ID не может быть 000", Toast.LENGTH_SHORT).show()
+                } else {
+                    addSensor(String.format("%03d", id))
                 }
             }
             .setNegativeButton("ОТМЕНА", null)
+            .create()
+            .apply {
+                setOnShowListener {
+                    getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+                    getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(ContextCompat.getColor(this@SensorActivity, R.color.blue_500))
+                }
+            }
             .show()
     }
 

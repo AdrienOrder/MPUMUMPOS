@@ -54,18 +54,20 @@ class StorageActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) { }
             
-            if (fileName.isNullOrBlank()) {
-                fileName = "import_${System.currentTimeMillis()}.csv"
-            }
-            
-            if (!fileName!!.lowercase().endsWith(".csv")) {
-                fileName = "$fileName.csv"
+            val finalFileName = fileName ?: "import_${System.currentTimeMillis()}.csv"
+            val isCsv = finalFileName.lowercase().endsWith(".csv")
+            val isTxt = finalFileName.lowercase().endsWith(".txt")
+            if (!isCsv && !isTxt) {
+                LogStorageManager.logMessage("Ошибка импорта: файл должен быть .csv или .txt")
+                Toast.makeText(this, "Файл должен быть .csv или .txt", Toast.LENGTH_SHORT).show()
+                inputStream.close()
+                return
             }
             
             val firstLine = inputStream.bufferedReader().use { it.readLine() }
             inputStream.close()
             
-            if (firstLine.isNullOrBlank() || !firstLine.contains(",")) {
+            if (firstLine.isNullOrBlank() || (!firstLine.contains(",") && !firstLine.contains(";"))) {
                 LogStorageManager.logMessage("Ошибка импорта: выбранный файл не является CSV файлом")
                 Toast.makeText(this, "Это не CSV файл", Toast.LENGTH_SHORT).show()
                 return
@@ -76,13 +78,13 @@ class StorageActivity : AppCompatActivity() {
             val destDir = File(getExternalFilesDir(null), "csv")
             if (!destDir.exists()) destDir.mkdirs()
             
-            val destFile = File(destDir, fileName)
+            val destFile = File(destDir, finalFileName)
             FileOutputStream(destFile).use { output ->
                 newInputStream.copyTo(output)
             }
             newInputStream.close()
             
-            val result = dbManager.addCsvFile(fileName, 0, destFile.absolutePath)
+            val result = dbManager.addCsvFile(finalFileName, 0, destFile.absolutePath)
             if (result == null) {
                 LogStorageManager.logMessage("Ошибка сохранения в БД")
                 Toast.makeText(this, "Ошибка сохранения в БД", Toast.LENGTH_SHORT).show()

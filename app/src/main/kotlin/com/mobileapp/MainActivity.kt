@@ -28,9 +28,10 @@ class MainActivity : AppCompatActivity() {
         const val CMD_GET_INTERVAL = "GET interval"
         const val CMD_GET_START = "GET start"
         const val CMD_GET_TIME = "GET time"
+        const val CMD_GET_SENSORS = "GET sensors"
         const val CMD_ADD_SENSOR = "ADD sensor "
         const val CMD_DEL_SENSOR = "DEL sensor "
-        const val CMD_GET_SENSORS = "GET sensors"
+        const val CMD_DEL_SENSORS = "DEL sensors"
 
         // Конвертация минут в формат ДД:ЧЧ:ММ
         fun minutesToDDHHMM(totalMinutes: Int): String {
@@ -210,10 +211,10 @@ class MainActivity : AppCompatActivity() {
         bluetoothManager.sendCommand(CMD_GET_INTERVAL)
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_GET_START)
-        }, 100)
+        }, 500)
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_GET_TIME)
-        }, 200)
+        }, 1000)
     }
 
     private fun setupUI() {
@@ -299,18 +300,22 @@ class MainActivity : AppCompatActivity() {
             }
             val device = bluetoothManager.getConnectedDevice()
             DataSaveHelper.startCollecting(device?.address ?: "", device?.name ?: "")
-            LogStorageManager.logMessage("Запрос данных с устройства...")
+            LogStorageManager.logMessage("Сбор данных: отправка GET data...")
             bluetoothManager.sendCommand(CMD_GET_DATA)
             Toast.makeText(this, "Ожидание данных...", Toast.LENGTH_SHORT).show()
             handler.postDelayed({
-                if (DataSaveHelper.hasData()) {
-                    DataSaveHelper.saveFiles(this)
-                    Toast.makeText(this, "Данные сохранены в хранилище", Toast.LENGTH_SHORT).show()
-                } else {
-                    LogStorageManager.logMessage("Сбор данных: ответ не получен")
-                    Toast.makeText(this, "Данные не получены от устройства", Toast.LENGTH_SHORT).show()
-                }
-            }, 5000)
+                bluetoothManager.sendCommand(CMD_GET_DATA)
+                LogStorageManager.logMessage("Сбор данных: повторный GET data")
+                handler.postDelayed({
+                    if (DataSaveHelper.hasData()) {
+                        DataSaveHelper.saveFiles(this)
+                        Toast.makeText(this, "Данные сохранены в хранилище", Toast.LENGTH_SHORT).show()
+                    } else if (!DataSaveHelper.isSaved()) {
+                        LogStorageManager.logMessage("Сбор данных: ответ не получен")
+                        Toast.makeText(this, "Данные не получены от устройства", Toast.LENGTH_SHORT).show()
+                    }
+                }, 10000)
+            }, 2000)
         }
         
         btnSensors.setOnClickListener {
@@ -492,7 +497,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun processResponse(response: String) {
-        Log.d(TAG, "Received: $response")
+        Log.d(TAG, "Received: '$response'")
         
         val timePattern = Regex("\\d{1,2}:\\d{2}(:\\d{2})?\\s+\\d{1,2}[\\.\\-]\\d{1,2}[\\.\\-]\\d{2,4}")
         
@@ -549,18 +554,16 @@ class MainActivity : AppCompatActivity() {
         if (DataSaveHelper.processLine(response)) {
             return
         }
-
+        
         // 7. OK после получения данных - завершаем и сохраняем
         if (response.trim().equals("OK", ignoreCase = true) && DataSaveHelper.hasData()) {
             DataSaveHelper.saveFiles(this)
             Toast.makeText(this, "Данные сохранены в хранилище", Toast.LENGTH_SHORT).show()
             return
         }
-
-        // 8. Для всех остальных ответов - просто логируем (только если не OK)
-        if (!response.contains("OK", ignoreCase = true)) {
-            LogStorageManager.logMessage("Ответ: $response")
-        }
+        
+        // 8. Для всех остальных ответов - просто логируем
+        LogStorageManager.logMessage("Ответ: '$response'")
     }
 
     private fun displayData(data: String) {

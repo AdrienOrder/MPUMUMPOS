@@ -106,11 +106,7 @@ class BluetoothManager private constructor(
 
         Thread {
             try {
-                bluetoothSocket = device.createRfcommSocketToServiceRecord(HC05_UUID)
-                if (bluetoothSocket == null) {
-                    throw IOException("Failed to create socket")
-                }
-                LogStorageManager.logMessage("Подключение к ${device.name}...")
+                bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(HC05_UUID)
                 bluetoothSocket?.connect()
                 outputStream = bluetoothSocket?.outputStream
                 inputStream = BufferedReader(InputStreamReader(bluetoothSocket?.inputStream))
@@ -137,24 +133,26 @@ class BluetoothManager private constructor(
     }
 
     private fun startReading() {
+        LogStorageManager.logMessage("BT поток чтения запущен")
         readThread = Thread {
             try {
                 while (isConnected && !Thread.currentThread().isInterrupted) {
                     val line = inputStream?.readLine()
-                if (line != null) {
-                    handler.post {
-                        onMessageReceived(line)
-                        additionalHandler?.invoke(line)
+                    if (line != null) {
+                        LogStorageManager.logMessage("BT RX: $line")
+                        handler.post {
+                            onMessageReceived(line)
+                            additionalHandler?.invoke(line)
+                        }
                     }
-                }
                 }
             } catch (e: IOException) {
                 if (isConnected) {
-                    // Соединение было активно, но прервалось - это нормально при отключении
                     Log.d(TAG, "Соединение разорвано: ${e.message}")
                     disconnect()
                 }
             }
+            LogStorageManager.logMessage("BT поток чтения завершён")
         }
         readThread?.start()
     }
@@ -162,7 +160,6 @@ class BluetoothManager private constructor(
     @SuppressLint("MissingPermission")
     fun disconnect() {
         try {
-            
             bluetoothSocket?.close()
             readThread?.interrupt()
         } catch (e: IOException) {
@@ -177,8 +174,8 @@ class BluetoothManager private constructor(
     @SuppressLint("MissingPermission")
     fun sendCommand(command: String) {
         try {
-            val commandWithNewline = if (command.endsWith("\r\n") || command.endsWith("\n")) command else "$command\r\n"
-            Log.d(TAG, "Sent: $commandWithNewline")
+            val commandWithNewline = if (command.endsWith("\n")) command else "$command\n"
+            LogStorageManager.logMessage("BT TX: '$commandWithNewline'")
             outputStream?.write(commandWithNewline.toByteArray())
             outputStream?.flush()
         } catch (e: IOException) {

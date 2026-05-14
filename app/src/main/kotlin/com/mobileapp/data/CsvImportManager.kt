@@ -12,7 +12,7 @@ object CsvImportManager {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         
         if (downloadsDir != null && downloadsDir.exists()) {
-            downloadsDir.listFiles()?.filter { it.extension.equals("csv", ignoreCase = true) }?.forEach { file ->
+            downloadsDir.listFiles()?.filter { it.extension.equals("csv", ignoreCase = true) || it.extension.equals("txt", ignoreCase = true) }?.forEach { file ->
                 files.add(ImportFile(
                     name = file.name,
                     path = file.absolutePath,

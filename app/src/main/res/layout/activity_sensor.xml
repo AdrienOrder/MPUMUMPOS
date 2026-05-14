@@ -49,7 +49,7 @@
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:background="@drawable/button_background_rounded"
-            android:text="ДОБАВИТЬ ДАТЧИК"
+            android:text="Добавить датчик"
             android:textAllCaps="false"
             android:textColor="@color/white"
             android:textSize="14sp"
@@ -63,7 +63,7 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:background="@drawable/button_background_rounded"
-            android:text="ОБНОВИТЬ СПИСОК"
+            android:text="Обновить список"
             android:textAllCaps="false"
             android:textColor="@color/white"
             android:textSize="14sp"
@@ -71,6 +71,36 @@
             style="@style/Widget.MobileApp.Button" />
 
     </LinearLayout>
+
+    <Button
+        android:id="@+id/btnDeleteAllSensors"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="16dp"
+        android:background="@drawable/button_delete_red"
+        android:text="Удалить все датчики"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:maxLines="2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnRow" />
+
+    <TextView
+        android:id="@+id/tvSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:gravity="center"
+        android:text="СПИСОК ДАТЧИКОВ УСТРОЙСТВА"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnDeleteAllSensors" />
 
     <TextView
         android:id="@+id/tvEmpty"
@@ -86,29 +116,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvSubtitle" />
 
-    <TextView
-        android:id="@+id/tvSubtitle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:text="СПИСОК ДАТЧИКОВ УСТРОЙСТВА"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnRow" />
-
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="24dp"
         android:paddingHorizontal="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvSubtitle">
+        app:layout_constraintTop_toBottomOf="@id/tvEmpty">
 
         <LinearLayout
             android:id="@+id/sensorListContainer"

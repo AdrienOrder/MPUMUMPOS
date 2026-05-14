@@ -14,18 +14,21 @@ object DataSaveHelper {
     private var isCollectingData = false
     private var currentDeviceMac = ""
     private var currentDeviceName = ""
+    private var wasSaved = false
 
     fun startCollecting(deviceMac: String, deviceName: String) {
         infoBuffer = StringBuilder()
         dataBuffer = StringBuilder()
         isCollectingInfo = false
         isCollectingData = false
+        wasSaved = false
         currentDeviceMac = deviceMac
         currentDeviceName = deviceName
         LogStorageManager.logMessage("Сбор данных с устройства начат")
     }
 
     fun processLine(line: String): Boolean {
+        LogStorageManager.logMessage("DataSaveHelper.processLine: [${line.take(50)}]")
         return when {
             line.startsWith("!info:") -> {
                 isCollectingInfo = true
@@ -54,6 +57,8 @@ object DataSaveHelper {
     fun hasData(): Boolean {
         return infoBuffer.isNotEmpty() || dataBuffer.isNotEmpty()
     }
+
+    fun isSaved(): Boolean = wasSaved
 
     fun saveFiles(context: Context): Boolean {
         if (infoBuffer.isEmpty() && dataBuffer.isEmpty()) {
@@ -87,6 +92,7 @@ object DataSaveHelper {
             LogStorageManager.logMessage("Сохранен файл данных: ${dataFile.name}")
         }
 
+        wasSaved = infoSaved || dataSaved
         reset()
         return infoSaved || dataSaved
     }
@@ -96,5 +102,6 @@ object DataSaveHelper {
         dataBuffer = StringBuilder()
         isCollectingInfo = false
         isCollectingData = false
+        wasSaved = false
     }
 }
