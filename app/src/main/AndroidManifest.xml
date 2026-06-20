@@ -30,7 +30,7 @@
         android:supportsRtl="true">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.mobileapp.main.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:screenOrientation="portrait">
@@ -41,52 +41,52 @@
         </activity>
 
         <activity
-            android:name=".DeviceListActivity"
+            android:name="com.mobileapp.bluetooth.DeviceListActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName="com.mobileapp.main.MainActivity" />
 
         <activity
-            android:name=".LogDisplayActivity"
+            android:name="com.mobileapp.log.LogDisplayActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName="com.mobileapp.main.MainActivity" />
 
         <activity
-            android:name=".StorageActivity"
+            android:name="com.mobileapp.storage.StorageActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName="com.mobileapp.main.MainActivity" />
 
         <activity
-            android:name=".FileListActivity"
+            android:name="com.mobileapp.storage.FileListActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".StorageActivity" />
+            android:parentActivityName="com.mobileapp.storage.StorageActivity" />
 
         <activity
-            android:name=".VisualizationActivity"
+            android:name="com.mobileapp.visualization.VisualizationActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".FileListActivity" />
+            android:parentActivityName="com.mobileapp.storage.FileListActivity" />
 
         <activity
-            android:name=".ChartActivity"
+            android:name="com.mobileapp.visualization.ChartActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".VisualizationActivity" />
+            android:parentActivityName="com.mobileapp.visualization.VisualizationActivity" />
 
         <activity
-            android:name=".TableActivity"
+            android:name="com.mobileapp.visualization.TableActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".VisualizationActivity" />
+            android:parentActivityName="com.mobileapp.visualization.VisualizationActivity" />
 
         <activity
-            android:name=".SensorActivity"
+            android:name="com.mobileapp.sensor.SensorActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName="com.mobileapp.main.MainActivity" />
 
     </application>
 </manifest>

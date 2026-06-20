@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.visualization
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,13 +9,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.mobileapp.data.CsvDataParser
-import com.mobileapp.data.CsvFileInfo
-import com.mobileapp.data.Device
-import com.mobileapp.data.ParamBounds
-import com.mobileapp.LogDisplayActivity
-import com.mobileapp.MainActivity
-import com.mobileapp.StorageActivity
+import com.mobileapp.csv.CsvDataParser
+import com.mobileapp.csv.CsvFileInfo
+import com.mobileapp.log.LogDisplayActivity
+import com.mobileapp.log.LogStorageManager
+import com.mobileapp.main.MainActivity
+import com.mobileapp.storage.StorageActivity
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -34,7 +33,7 @@ class VisualizationActivity : AppCompatActivity() {
     private lateinit var btnYear: Button
     private lateinit var btnExportPdf: Button
     private lateinit var btnResetPeriod: Button
-    
+
     private var selectedDay: Long? = null
     private var selectedMonth: Long? = null
     private var selectedYear: Int? = null
@@ -95,11 +94,6 @@ class VisualizationActivity : AppCompatActivity() {
                 pb.isSelected = isChecked
                 pb.lowerBound = lower
                 pb.upperBound = upper
-                if (isChecked) {
-                    // Краткий лог при выборе параметра
-                } else {
-                    
-                }
             }
         }
         rvParams.apply {
@@ -109,27 +103,25 @@ class VisualizationActivity : AppCompatActivity() {
     }
 
     private fun setupDatePickers() {
-        // Кнопки btnFromDate и btnToDate теперь только для отображения
-        // Период выбирается через кнопки День, Месяц, Год
     }
 
     private fun showDatePickerDialog(initialTimestamp: Long, onSelected: (Long) -> Unit) {
         val calendar = java.util.Calendar.getInstance().apply { timeInMillis = initialTimestamp }
-        
+
         val pickerDay = NumberPicker(this).apply {
             minValue = 1
             maxValue = 31
             value = calendar.get(java.util.Calendar.DAY_OF_MONTH)
             wrapSelectorWheel = false
         }
-        
+
         val pickerMonth = NumberPicker(this).apply {
             minValue = 1
             maxValue = 12
             value = calendar.get(java.util.Calendar.MONTH) + 1
             wrapSelectorWheel = false
         }
-        
+
         val pickerYear = NumberPicker(this).apply {
             minValue = 1900
             maxValue = 2199
@@ -243,16 +235,16 @@ class VisualizationActivity : AppCompatActivity() {
                 Toast.makeText(this, "Неверный период", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            
+
             for (pb in selectedParams) {
                 if (pb.lowerBound != null && pb.upperBound != null && pb.lowerBound!! >= pb.upperBound!!) {
                     Toast.makeText(this, "Ошибка: нижняя граница >= верхней для ${pb.name}", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
             }
-            
+
             LogStorageManager.logMessage("Визуализация: график - ${selectedParams.map { it.name }}")
-            
+
             val boundsList = selectedParams.mapNotNull { param ->
                 val lb = param.lowerBound
                 val ub = param.upperBound
@@ -260,7 +252,7 @@ class VisualizationActivity : AppCompatActivity() {
                     "${param.name}=${lb ?: ""},${ub ?: ""}"
                 } else null
             }
-            
+
             startActivity(Intent(this, ChartActivity::class.java).apply {
                 putExtra("file_path", filePath)
                 putExtra("file_name", fileName)
@@ -300,7 +292,7 @@ class VisualizationActivity : AppCompatActivity() {
     private fun setupPeriodButtons() {
         val info = csvInfo ?: return
         val allTimestamps = info.dataPoints.map { it.timestamp }.sorted()
-        
+
         btnDay.setOnClickListener {
             showPeriodPicker("Выберите день (начало)", allTimestamps) { startTs ->
                 val endTs = startTs + 24*60*60*1000L
@@ -310,7 +302,7 @@ class VisualizationActivity : AppCompatActivity() {
                 btnToDate.text = formatDate(endTs)
             }
         }
-        
+
         btnMonth.setOnClickListener {
             val minTs = allTimestamps.first()
             val maxTs = allTimestamps.last()
@@ -324,7 +316,7 @@ class VisualizationActivity : AppCompatActivity() {
                 btnToDate.text = formatDate(endTs)
             }
         }
-        
+
         btnYear.setOnClickListener {
             val minTs = allTimestamps.first()
             val maxTs = allTimestamps.last()
@@ -334,7 +326,7 @@ class VisualizationActivity : AppCompatActivity() {
             btnToDate.text = formatDate(maxTs)
         }
     }
-    
+
     private fun showPeriodPicker(title: String, timestamps: List<Long>, onSelected: (Long) -> Unit) {
         val picker = NumberPicker(this).apply {
             minValue = 1
@@ -342,7 +334,7 @@ class VisualizationActivity : AppCompatActivity() {
             value = 1
             wrapSelectorWheel = false
         }
-        
+
         android.app.AlertDialog.Builder(this)
             .setTitle(title)
             .setView(picker)
@@ -354,13 +346,13 @@ class VisualizationActivity : AppCompatActivity() {
             .setNegativeButton("Отмена", null)
             .show()
     }
-    
+
     private fun setupResetPeriod() {
         btnResetPeriod.setOnClickListener {
             val csvInfo = this.csvInfo ?: return@setOnClickListener
             val minTime = csvInfo.dataPoints.minOf { it.timestamp }
             val maxTime = csvInfo.dataPoints.maxOf { it.timestamp }
-            
+
             val calendar = java.util.Calendar.getInstance()
             calendar.timeInMillis = minTime
             calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -368,14 +360,14 @@ class VisualizationActivity : AppCompatActivity() {
             calendar.set(java.util.Calendar.SECOND, 0)
             calendar.set(java.util.Calendar.MILLISECOND, 0)
             val startOfRange = calendar.timeInMillis
-            
+
             calendar.timeInMillis = maxTime
             calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
             calendar.set(java.util.Calendar.MINUTE, 59)
             calendar.set(java.util.Calendar.SECOND, 59)
             calendar.set(java.util.Calendar.MILLISECOND, 999)
             val endOfRange = calendar.timeInMillis
-            
+
             fromTimestamp = startOfRange
             toTimestamp = endOfRange
             btnFromDate.text = formatDate(startOfRange)
@@ -392,15 +384,15 @@ class VisualizationActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.viz_no_data, Toast.LENGTH_SHORT).show()
             return
         }
-        
-LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataColumns.size} колонок, ${csvInfo!!.dataPoints.size} строк")
-        
+
+        LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataColumns.size} колонок, ${csvInfo!!.dataPoints.size} строк")
+
         paramBoundsList = csvInfo!!.dataColumns.map { ParamWithBounds(it) }.toMutableList()
         paramAdapter?.submitList(paramBoundsList)
-        
+
         val minTime = csvInfo!!.dataPoints.minOf { it.timestamp }
         val maxTime = csvInfo!!.dataPoints.maxOf { it.timestamp }
-        
+
         val calendar = java.util.Calendar.getInstance()
         calendar.timeInMillis = minTime
         calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -408,22 +400,22 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
         calendar.set(java.util.Calendar.SECOND, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
         val startOfRange = calendar.timeInMillis
-        
+
         calendar.timeInMillis = maxTime
         calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
         calendar.set(java.util.Calendar.MINUTE, 59)
         calendar.set(java.util.Calendar.SECOND, 59)
         calendar.set(java.util.Calendar.MILLISECOND, 999)
         val endOfRange = calendar.timeInMillis
-        
+
         btnFromDate.text = formatDate(startOfRange)
         btnToDate.text = formatDate(endOfRange)
         fromTimestamp = startOfRange
         toTimestamp = endOfRange
-        
+
         LogStorageManager.logMessage("Визуализация: Диапазон дат файла: ${formatDate(startOfRange)} - ${formatDate(endOfRange)}")
     }
-    
+
     private fun setupDayMonthYear() {
         btnDay.setOnClickListener {
             val csvInfo = this.csvInfo ?: return@setOnClickListener
@@ -433,19 +425,19 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
                 .distinctBy { it.second }
                 .sortedBy { it.first }
                 .map { it.second }
-            
+
             if (uniqueDays.isEmpty()) {
                 Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            
+
             showSelectionDialog("Выберите день", uniqueDays) { selected ->
                 selectedDay = dayFormat.parse(selected)?.time
                 clearPeriodSelections()
                 applyDaySelection(selected)
             }
         }
-        
+
         btnMonth.setOnClickListener {
             val csvInfo = this.csvInfo ?: return@setOnClickListener
             val monthFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
@@ -454,12 +446,12 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
                 .distinctBy { it.second }
                 .sortedBy { it.first }
                 .map { it.second }
-            
+
             if (uniqueMonths.isEmpty()) {
                 Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            
+
             showSelectionDialog("Выберите месяц", uniqueMonths) { selected ->
                 val parseFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
                 selectedMonth = parseFormat.parse(selected)?.time
@@ -467,7 +459,7 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
                 applyMonthSelection(selected)
             }
         }
-        
+
         btnYear.setOnClickListener {
             val csvInfo = this.csvInfo ?: return@setOnClickListener
             val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
@@ -476,12 +468,12 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
                 .distinctBy { it.second }
                 .sortedBy { it.first }
                 .map { it.second }
-            
+
             if (uniqueYears.isEmpty()) {
                 Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            
+
             showSelectionDialog("Выберите год", uniqueYears) { selected ->
                 selectedYear = selected.toIntOrNull()
                 clearPeriodSelections()
@@ -489,17 +481,17 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
             }
         }
     }
-    
+
     private fun clearPeriodSelections() {
         selectedDay = null
         selectedMonth = null
         selectedYear = null
     }
-    
+
     private fun applyDaySelection(dayStr: String) {
         val dayFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         val parseDate = dayFormat.parse(dayStr) ?: return
-        
+
         val calendar = java.util.Calendar.getInstance()
         calendar.time = parseDate
         calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -507,23 +499,23 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
         calendar.set(java.util.Calendar.SECOND, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
         val startOfDay = calendar.timeInMillis
-        
+
         calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
         calendar.set(java.util.Calendar.MINUTE, 59)
         calendar.set(java.util.Calendar.SECOND, 59)
         calendar.set(java.util.Calendar.MILLISECOND, 999)
         val endOfDay = calendar.timeInMillis
-        
+
         fromTimestamp = startOfDay
         toTimestamp = endOfDay
         btnFromDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(startOfDay))
         btnToDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(endOfDay))
     }
-    
+
     private fun applyMonthSelection(monthStr: String) {
         val parseFormat = SimpleDateFormat("MM.yyyy", Locale.getDefault())
         val monthDate = parseFormat.parse(monthStr) ?: return
-        
+
         val calendar = java.util.Calendar.getInstance()
         calendar.time = monthDate
         calendar.set(java.util.Calendar.DAY_OF_MONTH, 1)
@@ -532,39 +524,39 @@ LogStorageManager.logMessage("Визуализация: CSV - ${csvInfo!!.dataCo
         calendar.set(java.util.Calendar.SECOND, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
         val startOfMonth = calendar.timeInMillis
-        
+
         calendar.add(java.util.Calendar.MONTH, 1)
         calendar.add(java.util.Calendar.SECOND, -1)
         val endOfMonth = calendar.timeInMillis
-        
+
         fromTimestamp = startOfMonth
         toTimestamp = endOfMonth
         btnFromDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(startOfMonth))
         btnToDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(endOfMonth))
     }
-    
+
     private fun applyYearSelection(yearStr: String) {
         val year = yearStr.toIntOrNull() ?: return
-        
+
         val calendar = java.util.Calendar.getInstance()
         calendar.set(year, 0, 1, 0, 0, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
         val startOfYear = calendar.timeInMillis
-        
+
         calendar.set(year + 1, 0, 1, 0, 0, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
         calendar.add(java.util.Calendar.SECOND, -1)
         val endOfYear = calendar.timeInMillis
-        
+
         fromTimestamp = startOfYear
         toTimestamp = endOfYear
         btnFromDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(startOfYear))
         btnToDate.text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(endOfYear))
     }
-    
-private fun showSelectionDialog(title: String, items: List<String>, onSelect: (String) -> Unit) {
+
+    private fun showSelectionDialog(title: String, items: List<String>, onSelect: (String) -> Unit) {
         val builder = android.app.AlertDialog.Builder(this)
-        
+
         val titleView = android.widget.TextView(this).apply {
             text = title
             setTextColor(0xFF1976D2.toInt())
@@ -573,16 +565,16 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
             setPadding(0, 40, 0, 20)
         }
         builder.setCustomTitle(titleView)
-        
+
         val itemsArray = items.toTypedArray()
         builder.setItems(itemsArray) { dialog, which ->
             onSelect(itemsArray[which])
         }
-        
+
         builder.setNegativeButton("Отмена") { db, _ ->
             db.dismiss()
         }
-        
+
         val dialog = builder.create()
         dialog.setOnShowListener {
             dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).setTextColor(0xFF1976D2.toInt())
@@ -593,7 +585,7 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
     private fun formatDate(ts: Long): String {
         return SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(ts))
     }
-    
+
     private fun setupPdfExport() {
         btnExportPdf.setOnClickListener {
             val selParams = paramBoundsList.filter { it.isSelected }
@@ -601,13 +593,13 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                 Toast.makeText(this, "Выберите параметры", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            
+
             try {
                 val csvInfo = this.csvInfo ?: run {
                     Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                
+
                 val chart = com.github.mikephil.charting.charts.LineChart(this).apply {
                     description.isEnabled = false
                     setTouchEnabled(false)
@@ -619,7 +611,7 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                     setDrawGridBackground(true)
                     setGridBackgroundColor(android.graphics.Color.WHITE)
                     isHighlightPerDragEnabled = false
-                    
+
                     legend.apply {
                         textColor = android.graphics.Color.BLACK
                         textSize = 35f
@@ -634,7 +626,7 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                         yEntrySpace = 20f
                         formToTextSpace = 15f
                     }
-                    
+
                     xAxis.apply {
                         position = com.github.mikephil.charting.components.XAxis.XAxisPosition.BOTTOM
                         setDrawGridLines(true)
@@ -651,7 +643,7 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                             }
                         }
                     }
-                    
+
                     axisLeft.apply {
                         setDrawGridLines(true)
                         gridColor = android.graphics.Color.LTGRAY
@@ -660,7 +652,7 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                     }
                     axisRight.isEnabled = false
                 }
-                
+
                 val dataSets = mutableListOf<com.github.mikephil.charting.data.LineDataSet>()
                 val colors = listOf(
                     0xFFE91E63.toInt(), 0xFF2196F3.toInt(), 0xFF4CAF50.toInt(),
@@ -671,12 +663,12 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                     0xFFC2185B.toInt(), 0xFF1976D2.toInt(), 0xFF388E3C.toInt(),
                     0xFFFF5722.toInt(), 0xFF7B1FA2.toInt()
                 )
-                
+
                 for ((index, param) in selParams.withIndex()) {
                     val paramName = param.name
                     val entries = mutableListOf<com.github.mikephil.charting.data.Entry>()
                     var lastEntry: com.github.mikephil.charting.data.Entry? = null
-                    
+
                     for (point in csvInfo.dataPoints) {
                         val ts = point.timestamp
                         if (fromTimestamp != null && ts < fromTimestamp!!) continue
@@ -687,10 +679,10 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                             lastEntry = entry
                         }
                     }
-                    
+
                     if (entries.isNotEmpty()) {
                         val color = colors[index % colors.size]
-                        
+
                         val dataSet = com.github.mikephil.charting.data.LineDataSet(entries, paramName).apply {
                             this.color = color
                             lineWidth = 5f
@@ -705,76 +697,76 @@ private fun showSelectionDialog(title: String, items: List<String>, onSelect: (S
                         dataSets.add(dataSet)
                     }
                 }
-                
+
                 if (dataSets.isEmpty()) {
                     Toast.makeText(this, "Нет данных", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                
+
                 chart.data = com.github.mikephil.charting.data.LineData(dataSets.toList())
                 chart.invalidate()
-                
+
                 val pdfDoc = android.graphics.pdf.PdfDocument()
-                
+
                 val pdfWidth = 2970
                 val pdfHeight = 2100
                 val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pdfWidth, pdfHeight, 1).create()
                 val page = pdfDoc.startPage(pageInfo)
                 val canvas = page.canvas
-                
+
                 val titlePaint = android.graphics.Paint().apply {
                     color = android.graphics.Color.BLACK
                     textSize = 80f
                     isFakeBoldText = true
                 }
                 canvas.drawText("Графики данных", 100f, 120f, titlePaint)
-                
+
                 val chartLeft = 100
                 val chartTop = 300
                 val chartW = pdfWidth - 200
                 val chartH = pdfHeight - 450
-                
+
                 canvas.translate(chartLeft.toFloat(), chartTop.toFloat())
                 chart.layout(0, 0, chartW, chartH)
                 chart.draw(canvas)
-                
+
                 pdfDoc.finishPage(page)
-                
+
                 val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
                 val mpumFolder = File(downloadsDir, "MPUMUMPOS Downloads")
                 if (!mpumFolder.exists()) mpumFolder.mkdirs()
-                
+
                 val safeFileName = fileName.replace(".csv", "").replace(" ", "_")
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val pdfFileName = "${safeFileName}_$timestamp.pdf"
                 val file = File(mpumFolder, pdfFileName)
-                
+
                 FileOutputStream(file).use { out ->
                     pdfDoc.writeTo(out)
                 }
                 pdfDoc.close()
-                
+
                 Toast.makeText(this, "Сохранено: ${file.name}", Toast.LENGTH_LONG).show()
-                
+
             } catch (e: Exception) {
                 Toast.makeText(this, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
-    
+
     private fun setupBottomNavigation() {
         findViewById<View>(R.id.btnLogs)?.setOnClickListener {
             startActivity(Intent(this, LogDisplayActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             })
         }
-        
+
         findViewById<View>(R.id.btnHome)?.setOnClickListener {
             startActivity(Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             })
         }
-        
+
         findViewById<View>(R.id.btnStorage)?.setOnClickListener {
             startActivity(Intent(this, StorageActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT

@@ -1,7 +1,8 @@
-package com.mobileapp
+package com.mobileapp.csv
 
 import android.content.Context
-import com.mobileapp.data.StorageDatabaseManager
+import com.mobileapp.log.LogStorageManager
+import com.mobileapp.storage.data.StorageDatabaseManager
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date

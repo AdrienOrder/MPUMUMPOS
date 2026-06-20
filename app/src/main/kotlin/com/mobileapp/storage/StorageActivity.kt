@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.storage
 
 import android.content.Intent
 import android.net.Uri
@@ -11,10 +11,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.mobileapp.data.Device
-import com.mobileapp.data.StorageDatabaseManager
+import com.mobileapp.bluetooth.DeviceAdapter
+import com.mobileapp.bluetooth.data.Device
+import com.mobileapp.log.LogDisplayActivity
+import com.mobileapp.log.LogStorageManager
+import com.mobileapp.main.MainActivity
+import com.mobileapp.storage.data.StorageDatabaseManager
 import java.io.File
 import java.io.FileOutputStream
 
@@ -39,9 +42,9 @@ class StorageActivity : AppCompatActivity() {
         try {
             val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             contentResolver.takePersistableUriPermission(uri, takeFlags)
-            
+
             val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Cannot open file")
-            
+
             var fileName: String? = null
             try {
                 contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
@@ -53,7 +56,7 @@ class StorageActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) { }
-            
+
             val finalFileName = fileName ?: "import_${System.currentTimeMillis()}.csv"
             val isCsv = finalFileName.lowercase().endsWith(".csv")
             val isTxt = finalFileName.lowercase().endsWith(".txt")
@@ -63,43 +66,43 @@ class StorageActivity : AppCompatActivity() {
                 inputStream.close()
                 return
             }
-            
+
             val firstLine = inputStream.bufferedReader().use { it.readLine() }
             inputStream.close()
-            
+
             if (firstLine.isNullOrBlank() || (!firstLine.contains(",") && !firstLine.contains(";"))) {
                 LogStorageManager.logMessage("Ошибка импорта: выбранный файл не является CSV файлом")
                 Toast.makeText(this, "Это не CSV файл", Toast.LENGTH_SHORT).show()
                 return
             }
-            
+
             val newInputStream = contentResolver.openInputStream(uri) ?: throw Exception("Cannot re-open file")
-            
+
             val destDir = File(getExternalFilesDir(null), "csv")
             if (!destDir.exists()) destDir.mkdirs()
-            
+
             val destFile = File(destDir, finalFileName)
             FileOutputStream(destFile).use { output ->
                 newInputStream.copyTo(output)
             }
             newInputStream.close()
-            
+
             val result = dbManager.addCsvFile(finalFileName, 0, destFile.absolutePath)
             if (result == null) {
                 LogStorageManager.logMessage("Ошибка сохранения в БД")
                 Toast.makeText(this, "Ошибка сохранения в БД", Toast.LENGTH_SHORT).show()
                 return
             }
-            
+
             LogStorageManager.logMessage("Импорт: $fileName")
             Toast.makeText(this, R.string.storage_imported, Toast.LENGTH_SHORT).show()
             loadDevices()
-            
+
             startActivity(Intent(this, FileListActivity::class.java).apply {
                 putExtra("device_id", 0L)
                 putExtra("device_name", "Импортированные")
             })
-            
+
         } catch (e: Exception) {
             LogStorageManager.logMessage("Ошибка импорта: ${e.message}")
             Toast.makeText(this, "Ошибка импорта: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -114,8 +117,6 @@ class StorageActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         setContentView(R.layout.activity_storage)
-
-        
 
         StorageDatabaseManager.ContextHolder.context = applicationContext
         dbManager = StorageDatabaseManager(this)
@@ -159,25 +160,21 @@ class StorageActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btnStorage).setOnClickListener {
-            // Already here
         }
     }
 
     private fun loadDevices() {
-        // Always show "Imported" entry for deviceId = 0
         val devices = mutableListOf<Device>()
-        
-        // Add "Imported" first (show even if empty to indicate functionality)
+
         val importedCount = dbManager.getCsvFilesForDevice(0).size
         devices.add(Device(id = 0, name = "Импортированные", macAddress = "(из папки Загрузки)", fileCount = importedCount))
-        
-        // Add real devices
+
         val allDevices = dbManager.getAllDevices()
         devices.addAll(allDevices)
-        
+
         adapter.submitList(devices)
         findViewById<View>(R.id.tvEmpty).visibility = if (devices.isEmpty()) View.VISIBLE else View.GONE
-        
+
         val deviceDownloadedCount = allDevices.sumOf { device -> dbManager.getCsvFilesForDevice(device.id).size }
         LogStorageManager.logMessage("Хранилище: импортировано из Загрузок: $importedCount файлов, скачано с устройств: $deviceDownloadedCount файлов, всего устройств: ${allDevices.size}")
     }

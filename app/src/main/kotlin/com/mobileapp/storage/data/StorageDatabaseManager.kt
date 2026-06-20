@@ -1,11 +1,13 @@
-package com.mobileapp.data
+package com.mobileapp.storage.data
 
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import com.mobileapp.LogStorageManager
+import com.mobileapp.bluetooth.data.Device
+import com.mobileapp.csv.data.CsvFile
+import com.mobileapp.log.LogStorageManager
 import java.io.File
 
 class StorageDatabaseManager(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
@@ -63,7 +65,7 @@ class StorageDatabaseManager(context: Context) : SQLiteOpenHelper(context, DATAB
     fun getOrCreateDevice(name: String, macAddress: String): Device {
         val db = readableDatabase
         val cursor = db.query(TABLE_DEVICES, null, "$COL_MAC = ?", arrayOf(macAddress), null, null, null)
-        
+
         return if (cursor.moveToFirst()) {
             val device = cursorToDevice(cursor)
             cursor.close()
@@ -86,7 +88,7 @@ class StorageDatabaseManager(context: Context) : SQLiteOpenHelper(context, DATAB
         val devices = mutableListOf<Device>()
         val db = readableDatabase
         val cursor = db.query(TABLE_DEVICES, null, null, null, null, null, "$COL_LAST_ACTIVE DESC")
-        
+
         while (cursor.moveToNext()) {
             val device = cursorToDevice(cursor)
             val fileCount = getFileCountForDevice(device.id)
@@ -111,7 +113,7 @@ class StorageDatabaseManager(context: Context) : SQLiteOpenHelper(context, DATAB
             if (!file.exists()) {
                 return null
             }
-            
+
             val values = ContentValues().apply {
                 put(COL_FILE_NAME, fileName)
                 put(COL_FILE_PATH, filePath)
@@ -133,7 +135,7 @@ class StorageDatabaseManager(context: Context) : SQLiteOpenHelper(context, DATAB
         val files = mutableListOf<CsvFile>()
         val db = readableDatabase
         val cursor = db.query(TABLE_CSV_FILES, null, "$COL_DEVICE_ID = ?", arrayOf(deviceId.toString()), null, null, "$COL_DOWNLOADED_AT DESC")
-        
+
         while (cursor.moveToNext()) {
             files.add(cursorToCsvFile(cursor))
         }

@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.visualization
 
 import android.text.Editable
 import android.text.TextWatcher
@@ -38,10 +38,10 @@ class ParamAdapter(
 
         fun bind(param: ParamWithBounds) {
             checkBox.text = param.name
-            
+
             etLowerBound.isEnabled = param.isSelected
             etUpperBound.isEnabled = param.isSelected
-            
+
             if (!param.isSelected) {
                 etLowerBound.setText("")
                 etUpperBound.setText("")
@@ -82,7 +82,7 @@ class ParamAdapter(
 
     class ParamDiffCallback : DiffUtil.ItemCallback<ParamWithBounds>() {
         override fun areItemsTheSame(oldItem: ParamWithBounds, newItem: ParamWithBounds) = oldItem.name == newItem.name
-        override fun areContentsTheSame(oldItem: ParamWithBounds, newItem: ParamWithBounds) = 
+        override fun areContentsTheSame(oldItem: ParamWithBounds, newItem: ParamWithBounds) =
             oldItem.name == newItem.name && oldItem.isSelected == newItem.isSelected &&
             oldItem.lowerBound == newItem.lowerBound && oldItem.upperBound == newItem.upperBound
     }

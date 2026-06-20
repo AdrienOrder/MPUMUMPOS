@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.log
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -19,7 +19,6 @@ object LogStorageManager {
         synchronized(logLock) {
             logText.append(logEntry)
         }
-        // Вызов UI обновления должен быть в UI потоке, но мы доверяем вызывающей стороне
         onUpdate?.invoke()
     }
 

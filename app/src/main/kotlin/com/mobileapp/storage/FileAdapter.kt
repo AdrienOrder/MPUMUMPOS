@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.storage
 
 import android.view.LayoutInflater
 import android.view.View
@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.mobileapp.data.CsvFile
+import com.mobileapp.csv.data.CsvFile
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -37,7 +37,7 @@ class FileAdapter(
 
         fun bind(file: CsvFile) {
             tvName.text = file.fileName
-            
+
             val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
             val sizeStr = formatFileSize(file.fileSize)
             tvInfo.text = "${dateFormat.format(Date(file.downloadedAt))}, $sizeStr"
@@ -51,7 +51,7 @@ class FileAdapter(
             }
             btnDelete.setOnClickListener { onDeleteClick(file) }
         }
-        
+
         private fun formatFileSize(bytes: Long): String {
             return when {
                 bytes < 1024 -> "$bytes B"

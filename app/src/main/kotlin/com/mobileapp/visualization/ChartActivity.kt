@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.visualization
 
 import android.content.pm.ActivityInfo
 import android.content.SharedPreferences
@@ -21,7 +21,8 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
-import com.mobileapp.data.CsvDataParser
+import com.mobileapp.csv.CsvDataParser
+import com.mobileapp.log.LogStorageManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,7 +32,7 @@ class ChartActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "chart_prefs"
         private const val KEY_LANDSCAPE = "is_landscape"
-        
+
         private val CHART_COLORS = listOf(
             0xFFE91E63.toInt(), 0xFF2196F3.toInt(), 0xFF4CAF50.toInt(),
             0xFFFF9800.toInt(), 0xFF9C27B0.toInt(), 0xFF00BCD4.toInt(),
@@ -62,19 +63,19 @@ class ChartActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         isLandscape = prefs.getBoolean(KEY_LANDSCAPE, false)
-        
+
         setContentView(R.layout.activity_chart)
         setRequestedOrientation(if (isLandscape) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
-        
+
         filePath = intent.getStringExtra(EXTRA_FILE_PATH) ?: ""
         fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: ""
         selectedParams = intent.getStringArrayListExtra(EXTRA_SELECTED_PARAMS) ?: emptyList()
         fromTimestamp = intent.getLongExtra(EXTRA_FROM_DATE, 0)
         toTimestamp = intent.getLongExtra(EXTRA_TO_DATE, 0)
-        
+
         val boundsStr = intent.getStringArrayListExtra(EXTRA_PARAM_BOUNDS)
         paramBounds = boundsStr?.associate { entry ->
             val parts = entry.split("=")
@@ -92,11 +93,11 @@ class ChartActivity : AppCompatActivity() {
 
         LogStorageManager.logMessage("График: $fileName, $selectedParams")
 
-        findViewById<ImageButton>(R.id.btnBack).setOnClickListener { 
+        findViewById<ImageButton>(R.id.btnBack).setOnClickListener {
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
-            finish() 
+            finish()
         }
-        
+
         findViewById<ImageButton>(R.id.btnRotate).setOnClickListener {
             isLandscape = !isLandscape
             requestedOrientation = if (isLandscape) {
@@ -107,7 +108,7 @@ class ChartActivity : AppCompatActivity() {
             setRequestedOrientation(requestedOrientation)
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
         }
-        
+
         chart = findViewById(R.id.chartFull)
         findViewById<TextView>(R.id.tvTitle).text = "Графики Данных"
         setupChart()
@@ -130,7 +131,7 @@ class ChartActivity : AppCompatActivity() {
             setDrawGridBackground(true)
             setGridBackgroundColor(Color.WHITE)
             isHighlightPerDragEnabled = true
-            
+
             legend.apply {
                 textColor = Color.BLACK
                 textSize = 11f
@@ -145,7 +146,7 @@ class ChartActivity : AppCompatActivity() {
                 yEntrySpace = 6f
                 formToTextSpace = 4f
             }
-            
+
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(true)
@@ -162,7 +163,7 @@ class ChartActivity : AppCompatActivity() {
                     }
                 }
             }
-            
+
             axisLeft.apply {
                 setDrawGridLines(true)
                 gridColor = Color.LTGRAY
@@ -171,7 +172,7 @@ class ChartActivity : AppCompatActivity() {
                 axisMinimum = 0f
             }
             axisRight.isEnabled = false
-            
+
             setNoDataText("Нет данных для отображения")
         }
     }
@@ -181,19 +182,19 @@ class ChartActivity : AppCompatActivity() {
         if (csvInfo == null || selectedParams.isEmpty()) {
             return
         }
-        
+
         if (fromTimestamp > 0 && toTimestamp > 0 && fromTimestamp > toTimestamp) {
             return
         }
-        
+
         val dataSets = mutableListOf<LineDataSet>()
-        
+
         for ((index, param) in selectedParams.withIndex()) {
             val entries = mutableListOf<Entry>()
             val breakPoints = mutableListOf<Entry>()
             var prevValue: Float? = null
             var lastEntry: Entry? = null
-            
+
             for (point in csvInfo.dataPoints) {
                 val ts = point.timestamp
                 if (fromTimestamp > 0 && ts < fromTimestamp) continue
@@ -202,7 +203,7 @@ class ChartActivity : AppCompatActivity() {
                     val entry = Entry(ts.toFloat(), value.toFloat())
                     entries.add(entry)
                     lastEntry = entry
-                    
+
                     val currVal = value.toFloat()
                     if (prevValue == null || currVal != prevValue) {
                         breakPoints.add(entry)
@@ -210,11 +211,11 @@ class ChartActivity : AppCompatActivity() {
                     prevValue = currVal
                 }
             }
-            
+
             if (lastEntry != null && !breakPoints.any { it.x == lastEntry.x && it.y == lastEntry.y }) {
                 breakPoints.add(lastEntry)
             }
-            
+
             if (entries.isNotEmpty()) {
                 val color = CHART_COLORS[index % CHART_COLORS.size]
                 val dataSet = LineDataSet(breakPoints, param).apply {
@@ -242,20 +243,20 @@ class ChartActivity : AppCompatActivity() {
                 dataSets.add(dataSet)
             }
         }
-        
+
         if (dataSets.isEmpty()) {
             return
         }
-        
+
         chart.data = LineData(dataSets.toList())
-        
+
         chart.axisLeft.removeAllLimitLines()
-        
+
         for ((index, param) in selectedParams.withIndex()) {
             val bounds = paramBounds[param] ?: continue
             val (lower, upper) = bounds
             val color = CHART_COLORS[index % CHART_COLORS.size]
-            
+
             lower?.let {
                 val lowerLine = LimitLine(it.toFloat(), "мин $param").apply {
                     lineColor = color
@@ -266,7 +267,7 @@ class ChartActivity : AppCompatActivity() {
                 }
                 chart.axisLeft.addLimitLine(lowerLine)
             }
-            
+
             upper?.let {
                 val upperLine = LimitLine(it.toFloat(), "макс $param").apply {
                     lineColor = color
@@ -278,47 +279,47 @@ class ChartActivity : AppCompatActivity() {
                 chart.axisLeft.addLimitLine(upperLine)
             }
         }
-        
+
         val xMin = dataSets.first().xMin
         val xMax = dataSets.first().xMax
         val xRange = xMax - xMin
-        
+
         chart.invalidate()
-        
+
         chart.post {
             chart.setVisibleXRangeMaximum(xRange)
             chart.setVisibleXRangeMinimum(xRange / 1000)
             chart.moveViewToX(xMin)
         }
-        
+
         LogStorageManager.logMessage("График построен")
     }
-    
+
     private fun exportToPdf() {
         try {
             val pdfDocument = PdfDocument()
             val pageInfo = PdfDocument.PageInfo.Builder(chart.width, chart.height, 1).create()
             val page = pdfDocument.startPage(pageInfo)
-            
+
             val canvas = page.canvas
             chart.draw(canvas)
-            
+
             pdfDocument.finishPage(page)
-            
+
             val fileName = "graph_${System.currentTimeMillis()}.pdf"
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val mpumFolder = File(downloadsDir, "MPUMUMPOS Downloads")
             if (!mpumFolder.exists()) mpumFolder.mkdirs()
             val file = File(mpumFolder, fileName)
-            
+
             FileOutputStream(file).use { out ->
                 pdfDocument.writeTo(out)
             }
-            
+
             pdfDocument.close()
-            
+
             Toast.makeText(this, "Сохранено: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-            
+
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка сохранения: ${e.message}", Toast.LENGTH_SHORT).show()
         }

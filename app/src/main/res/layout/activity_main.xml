@@ -14,6 +14,7 @@
         android:fillViewport="true"
         android:background="@color/white"
         android:padding="16dp"
+        android:importantForAccessibility="no"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -350,7 +351,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Логи"
             android:src="@android:drawable/ic_menu_agenda"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
         <ImageButton
             android:id="@+id/btnHome"
@@ -360,7 +361,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Главная"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
         <ImageButton
             android:id="@+id/btnFiles"
@@ -370,7 +371,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Файлы"
             android:src="@android:drawable/ic_menu_save"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
     </LinearLayout>
 

@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.visualization
 
 import android.content.pm.ActivityInfo
 import android.content.SharedPreferences
@@ -12,8 +12,9 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.mobileapp.data.CsvDataParser
-import com.mobileapp.data.CsvFileInfo
+import com.mobileapp.csv.CsvDataParser
+import com.mobileapp.csv.CsvFileInfo
+import com.mobileapp.log.LogStorageManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -23,7 +24,7 @@ class TableActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "table_prefs"
         private const val KEY_LANDSCAPE = "is_landscape"
-        
+
         const val EXTRA_FILE_PATH = "file_path"
         const val EXTRA_FILE_NAME = "file_name"
         const val EXTRA_SELECTED_PARAMS = "selected_params"
@@ -44,10 +45,10 @@ class TableActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         isLandscape = prefs.getBoolean(KEY_LANDSCAPE, false)
-        
+
         setContentView(R.layout.activity_table)
         setRequestedOrientation(if (isLandscape) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
 
@@ -59,11 +60,11 @@ class TableActivity : AppCompatActivity() {
 
         LogStorageManager.logMessage("Таблица: $fileName, ${selectedParams.size} параметров")
 
-        findViewById<ImageButton>(R.id.btnBack).setOnClickListener { 
+        findViewById<ImageButton>(R.id.btnBack).setOnClickListener {
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
-            finish() 
+            finish()
         }
-        
+
         findViewById<ImageButton>(R.id.btnRotate).setOnClickListener {
             isLandscape = !isLandscape
             requestedOrientation = if (isLandscape) {
@@ -74,10 +75,10 @@ class TableActivity : AppCompatActivity() {
             setRequestedOrientation(requestedOrientation)
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_LANDSCAPE, isLandscape).apply()
         }
-        
+
         tableLayout = findViewById(R.id.tableData)
         progressBar = findViewById(R.id.progressBar)
-        
+
         setupTableAsync()
     }
 
@@ -87,17 +88,16 @@ class TableActivity : AppCompatActivity() {
 
     private fun setupTableAsync() {
         progressBar.visibility = View.VISIBLE
-        
+
         Thread {
             val csvInfo = CsvDataParser.parseCsvFile(filePath)
             val dataParams = if (selectedParams.isEmpty()) csvInfo?.dataColumns ?: emptyList() else selectedParams
             val rows = buildTableRows(csvInfo, dataParams)
-            
+
             mainHandler.post {
                 progressBar.visibility = View.GONE
                 tableLayout.removeAllViews()
-                
-                // Add header
+
                 val headerRow = TableRow(this@TableActivity).apply {
                     setBackgroundColor(0xFFE3F2FD.toInt())
                 }
@@ -106,12 +106,11 @@ class TableActivity : AppCompatActivity() {
                     headerRow.addView(createCell(param, true))
                 }
                 tableLayout.addView(headerRow)
-                
-                // Add data rows
+
                 rows.forEach { row ->
                     tableLayout.addView(row)
                 }
-                
+
                 LogStorageManager.logMessage("Таблица: ${rows.size} строк")
             }
         }.start()
@@ -119,25 +118,25 @@ class TableActivity : AppCompatActivity() {
 
     private fun buildTableRows(csvInfo: CsvFileInfo?, dataParams: List<String>): List<TableRow> {
         val rows = mutableListOf<TableRow>()
-        
+
         if (csvInfo == null || dataParams.isEmpty()) {
             return rows
         }
-        
+
         if (fromTimestamp > 0 && toTimestamp > 0 && fromTimestamp > toTimestamp) {
             return rows
         }
-        
+
         val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
         var rowCount = 0
-        
+
         for (point in csvInfo.dataPoints) {
             if (rowCount >= MAX_ROWS) break
-            
+
             val ts = point.timestamp
             if (fromTimestamp > 0 && ts < fromTimestamp) continue
             if (toTimestamp > 0 && ts > toTimestamp) continue
-            
+
             val dataRow = TableRow(this).apply {
                 setBackgroundColor(if (rowCount % 2 == 0) 0xFFFFFFFF.toInt() else 0xFFF5F5F5.toInt())
             }
@@ -147,11 +146,11 @@ class TableActivity : AppCompatActivity() {
                 val value = point.values[param]?.toString() ?: "-"
                 dataRow.addView(createCell(value, false))
             }
-            
+
             rows.add(dataRow)
             rowCount++
         }
-        
+
         return rows
     }
 

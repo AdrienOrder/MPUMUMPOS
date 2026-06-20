@@ -1,6 +1,6 @@
-package com.mobileapp.data
+package com.mobileapp.csv
 
-import com.mobileapp.LogStorageManager
+import com.mobileapp.log.LogStorageManager
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale

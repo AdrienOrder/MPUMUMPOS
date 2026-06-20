@@ -1,7 +1,6 @@
-package com.mobileapp
+package com.mobileapp.bluetooth
 
 import android.annotation.SuppressLint
-import com.mobileapp.LogStorageManager
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -15,6 +14,7 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.mobileapp.log.LogStorageManager
 
 @SuppressLint("MissingPermission")
 class DeviceListActivity : AppCompatActivity() {
@@ -31,7 +31,6 @@ class DeviceListActivity : AppCompatActivity() {
     private val deviceList = ArrayList<BluetoothDevice>()
     private val deviceNames = ArrayList<String>()
 
-    // Лаунчер для запроса разрешений
     private val requestPermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -55,7 +54,6 @@ class DeviceListActivity : AppCompatActivity() {
             progressBar = findViewById(R.id.progressBar)
             btnRefresh = findViewById(R.id.btnRefresh)
 
-            // Настройка адаптера для списка
             val adapter = ArrayAdapter(
                 this,
                 android.R.layout.simple_list_item_2,
@@ -64,7 +62,6 @@ class DeviceListActivity : AppCompatActivity() {
             )
             lvDevices.adapter = adapter
 
-            // Обработчик выбора устройства
             lvDevices.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
                 if (position < deviceList.size) {
                     val device = deviceList[position]
@@ -77,12 +74,10 @@ class DeviceListActivity : AppCompatActivity() {
                 }
             }
 
-            // Кнопка обновления
             btnRefresh.setOnClickListener {
                 checkPermissionsAndLoadDevices()
             }
 
-            // Инициализация Bluetooth
             @Suppress("MissingPermission")
             bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
             if (bluetoothAdapter == null) {
@@ -91,7 +86,6 @@ class DeviceListActivity : AppCompatActivity() {
                 return
             }
 
-            // Проверка разрешений и загрузка устройств
             checkPermissionsAndLoadDevices()
 
         } catch (e: Exception) {
@@ -112,9 +106,7 @@ class DeviceListActivity : AppCompatActivity() {
     private fun checkPermissions(): Boolean {
         val permissionsNeeded = mutableListOf<String>()
 
-        // Проверяем необходимые разрешения в зависимости от версии Android
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
                 != PackageManager.PERMISSION_GRANTED) {
                 permissionsNeeded.add(Manifest.permission.BLUETOOTH_CONNECT)
@@ -124,7 +116,6 @@ class DeviceListActivity : AppCompatActivity() {
                 permissionsNeeded.add(Manifest.permission.BLUETOOTH_SCAN)
             }
         } else {
-            // Android 6.0-11
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH)
                 != PackageManager.PERMISSION_GRANTED) {
                 permissionsNeeded.add(Manifest.permission.BLUETOOTH)
@@ -135,7 +126,6 @@ class DeviceListActivity : AppCompatActivity() {
             }
         }
 
-        // Разрешение на местоположение (обязательно!)
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -169,7 +159,6 @@ class DeviceListActivity : AppCompatActivity() {
         progressBar.visibility = View.VISIBLE
 
         try {
-            // Проверяем, включен ли Bluetooth
             @Suppress("MissingPermission")
             if (bluetoothAdapter?.isEnabled != true) {
                 LogStorageManager.logMessage("Bluetooth не включен, требуется включение")
@@ -178,7 +167,6 @@ class DeviceListActivity : AppCompatActivity() {
                 return
             }
 
-            // Получаем список сопряженных устройств
             val pairedDevices = try {
                 bluetoothAdapter?.bondedDevices
             } catch (e: SecurityException) {
@@ -190,7 +178,6 @@ class DeviceListActivity : AppCompatActivity() {
             pairedDevices?.forEach { device ->
                 deviceList.add(device)
 
-                // Получаем имя устройства (может быть null)
                 val deviceName = try {
                     device.name ?: "Неизвестное устройство"
                 } catch (e: SecurityException) {
@@ -200,7 +187,6 @@ class DeviceListActivity : AppCompatActivity() {
                 deviceNames.add("$deviceName\n${device.address}")
             }
 
-            // Обновляем список
             @Suppress("UNCHECKED_CAST")
             (lvDevices.adapter as ArrayAdapter<String>).notifyDataSetChanged()
             progressBar.visibility = View.GONE

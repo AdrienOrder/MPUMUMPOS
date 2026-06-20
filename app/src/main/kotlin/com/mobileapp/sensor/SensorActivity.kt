@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.sensor
 
 import android.content.Intent
 import android.os.Bundle
@@ -13,6 +13,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.mobileapp.main.MainActivity
+import com.mobileapp.bluetooth.BluetoothManager
+import com.mobileapp.log.LogStorageManager
 
 class SensorActivity : AppCompatActivity() {
 

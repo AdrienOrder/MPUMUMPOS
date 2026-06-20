@@ -1,4 +1,4 @@
-package com.mobileapp.data
+package com.mobileapp.csv.data
 
 data class CsvFile(
     val id: Long = 0,

@@ -1,4 +1,4 @@
-package com.mobileapp.data
+package com.mobileapp.visualization.data
 
 data class ParamBounds(
     val name: String,

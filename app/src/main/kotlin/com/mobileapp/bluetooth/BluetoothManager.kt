@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.bluetooth
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothSocket
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.mobileapp.log.LogStorageManager
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -24,10 +25,10 @@ class BluetoothManager private constructor(
     companion object {
         private const val TAG = "BluetoothManager"
         private val HC05_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-        
+
         @Volatile
         private var instance: BluetoothManager? = null
-        
+
         @Volatile
         private var sharedHandler: Handler? = null
         @Volatile
@@ -38,14 +39,14 @@ class BluetoothManager private constructor(
         private var sharedOnMessageReceived: ((String) -> Unit)? = null
         @Volatile
         private var sharedOnError: ((String) -> Unit)? = null
-        
+
         @Volatile
         private var additionalHandler: ((String) -> Unit)? = null
-        
+
         fun setAdditionalHandler(handler: ((String) -> Unit)?) {
             additionalHandler = handler
         }
-        
+
         fun getInstance(
             handler: Handler,
             onConnected: (BluetoothDevice) -> Unit,
@@ -67,11 +68,11 @@ class BluetoothManager private constructor(
             }
             return instance!!
         }
-        
+
         fun isInstanceCreated(): Boolean = instance != null
-        
+
         fun getExistingInstance(): BluetoothManager? = instance
-        
+
         fun clearInstance() {
             instance = null
         }
@@ -110,11 +111,11 @@ class BluetoothManager private constructor(
                 bluetoothSocket?.connect()
                 outputStream = bluetoothSocket?.outputStream
                 inputStream = BufferedReader(InputStreamReader(bluetoothSocket?.inputStream))
-                
+
                 if (outputStream == null || inputStream == null) {
                     throw IOException("Failed to get streams")
                 }
-                
+
                 isConnected = true
                 connectedDevice = device
 

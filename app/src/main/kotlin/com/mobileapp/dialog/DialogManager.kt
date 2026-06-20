@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.dialog
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -107,7 +107,6 @@ class DialogManager(private val context: Context) {
     }
 
     fun showIntervalPickerDialog(currentValue: Int, onSelected: (Int) -> Unit) {
-        // Convert total minutes to DD:HH:MM
         val totalMinutes = currentValue
         val days = totalMinutes / (24 * 60)
         val hours = (totalMinutes % (24 * 60)) / 60
@@ -119,14 +118,14 @@ class DialogManager(private val context: Context) {
             value = days
             wrapSelectorWheel = false
         }
-        
+
         val pickerHours = NumberPicker(context).apply {
             minValue = 0
             maxValue = 23
             value = hours
             wrapSelectorWheel = false
         }
-        
+
         val pickerMinutes = NumberPicker(context).apply {
             minValue = 0
             maxValue = 59
@@ -134,7 +133,6 @@ class DialogManager(private val context: Context) {
             wrapSelectorWheel = false
         }
 
-        // Create labels
         val labelDays = TextView(context).apply {
             text = "ДД"
             textSize = 12f
@@ -154,13 +152,11 @@ class DialogManager(private val context: Context) {
             setTextColor(ContextCompat.getColor(context, R.color.blue_500))
         }
 
-        // Layout for pickers with labels
         val pickersLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER
         }
 
-        // Helper to add separator
         fun addSeparator(char: String) {
             val separator = TextView(context).apply {
                 text = char
@@ -168,7 +164,7 @@ class DialogManager(private val context: Context) {
                 gravity = android.view.Gravity.CENTER
                 setTextColor(ContextCompat.getColor(context, R.color.blue_500))
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
                     setMargins(0, 40, 0, 0)
@@ -177,7 +173,6 @@ class DialogManager(private val context: Context) {
             pickersLayout.addView(separator)
         }
 
-        // Helper to add picker with label
         fun addPickerWithLabel(picker: NumberPicker, label: TextView) {
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
@@ -212,10 +207,9 @@ class DialogManager(private val context: Context) {
         val dialog = AlertDialog.Builder(context)
             .setView(container)
             .setPositiveButton(context.getString(R.string.dialog_button_confirm)) { _, _ ->
-                // Convert back to total minutes
-                val totalMinutesSelected = pickerDays.value * 24 * 60 + 
-                                          pickerHours.value * 60 + 
-                                          pickerMinutes.value
+                val totalMinutesSelected = pickerDays.value * 24 * 60 +
+                    pickerHours.value * 60 +
+                    pickerMinutes.value
                 onSelected(totalMinutesSelected)
             }
             .setNegativeButton(context.getString(R.string.dialog_button_cancel), null)
@@ -231,10 +225,9 @@ class DialogManager(private val context: Context) {
         val initialHour = now.get(Calendar.HOUR_OF_DAY)
         val initialMinute = now.get(Calendar.MINUTE)
         val initialDay = now.get(Calendar.DAY_OF_MONTH)
-        val initialMonth = now.get(Calendar.MONTH) + 1 // Calendar.MONTH is 0-based
+        val initialMonth = now.get(Calendar.MONTH) + 1
         val initialYear = now.get(Calendar.YEAR)
 
-        // Helper to get max days in month
         fun getMaxDays(month: Int, year: Int): Int {
             return when (month) {
                 2 -> if (isLeapYear(year)) 29 else 28
@@ -243,35 +236,34 @@ class DialogManager(private val context: Context) {
             }
         }
 
-        // Create NumberPickers
         val pickerHour = NumberPicker(context).apply {
             minValue = 0
             maxValue = 23
             value = initialHour
             wrapSelectorWheel = false
         }
-        
+
         val pickerMinute = NumberPicker(context).apply {
             minValue = 0
             maxValue = 59
             value = initialMinute
             wrapSelectorWheel = false
         }
-        
+
         val pickerDay = NumberPicker(context).apply {
             minValue = 1
             maxValue = getMaxDays(initialMonth, initialYear)
             value = initialDay
             wrapSelectorWheel = false
         }
-        
+
         val pickerMonth = NumberPicker(context).apply {
             minValue = 1
             maxValue = 12
             value = initialMonth
             wrapSelectorWheel = false
         }
-        
+
         val pickerYear = NumberPicker(context).apply {
             minValue = 1900
             maxValue = 2199
@@ -279,7 +271,6 @@ class DialogManager(private val context: Context) {
             wrapSelectorWheel = false
         }
 
-        // Create labels
         val labelHour = TextView(context).apply {
             text = "ЧЧ"
             textSize = 12f
@@ -311,13 +302,11 @@ class DialogManager(private val context: Context) {
             setTextColor(ContextCompat.getColor(context, R.color.blue_500))
         }
 
-        // Layout for pickers with labels
         val pickersLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER
         }
 
-        // Helper to add separator with specific character
         fun addSeparator(char: String) {
             val separator = TextView(context).apply {
                 text = char
@@ -325,16 +314,15 @@ class DialogManager(private val context: Context) {
                 gravity = android.view.Gravity.CENTER
                 setTextColor(ContextCompat.getColor(context, R.color.blue_500))
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    setMargins(0, 40, 0, 0) // Align with pickers
+                    setMargins(0, 40, 0, 0)
                 }
             }
             pickersLayout.addView(separator)
         }
 
-        // Helper to add picker with label
         fun addPickerWithLabel(picker: NumberPicker, label: TextView) {
             val container = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
@@ -356,7 +344,6 @@ class DialogManager(private val context: Context) {
         addSeparator(".")
         addPickerWithLabel(pickerYear, labelYear)
 
-        // Update days when month or year changes
         pickerMonth.setOnValueChangedListener { _, _, newMonth ->
             val maxDays = getMaxDays(newMonth, pickerYear.value)
             pickerDay.maxValue = maxDays
@@ -390,12 +377,11 @@ class DialogManager(private val context: Context) {
         val dialog = AlertDialog.Builder(context)
             .setView(container)
             .setPositiveButton(context.getString(R.string.dialog_button_confirm)) { _, _ ->
-                // Use old format with space for the actual result
-                val selectedTime = String.format("%02d:%02d %02d.%02d.%04d", 
-                    pickerHour.value, 
-                    pickerMinute.value, 
-                    pickerDay.value, 
-                    pickerMonth.value, 
+                val selectedTime = String.format("%02d:%02d %02d.%02d.%04d",
+                    pickerHour.value,
+                    pickerMinute.value,
+                    pickerDay.value,
+                    pickerMonth.value,
                     pickerYear.value)
                 onSelected(selectedTime)
             }

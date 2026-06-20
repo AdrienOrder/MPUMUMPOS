@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.storage
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,8 +10,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.mobileapp.data.CsvFile
-import com.mobileapp.data.StorageDatabaseManager
+import com.mobileapp.csv.data.CsvFile
+import com.mobileapp.log.LogDisplayActivity
+import com.mobileapp.log.LogStorageManager
+import com.mobileapp.main.MainActivity
+import com.mobileapp.storage.data.StorageDatabaseManager
+import com.mobileapp.visualization.VisualizationActivity
 import java.io.File
 
 class FileListActivity : AppCompatActivity() {
@@ -75,7 +79,7 @@ class FileListActivity : AppCompatActivity() {
                 val dialogView = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(60, 40, 60, 20)
-                    
+
                     addView(TextView(context).apply {
                         text = "Удалить файл"
                         setTextColor(ContextCompat.getColor(context, R.color.blue_500))
@@ -90,7 +94,7 @@ class FileListActivity : AppCompatActivity() {
                         setPadding(0, 20, 0, 40)
                     })
                 }
-                
+
                 androidx.appcompat.app.AlertDialog.Builder(this)
                     .setView(dialogView)
                     .setPositiveButton("Удалить") { _, _ ->
@@ -114,7 +118,7 @@ class FileListActivity : AppCompatActivity() {
         val files = dbManager.getCsvFilesForDevice(deviceId)
         adapter.submitList(files)
         findViewById<View>(R.id.tvEmpty).visibility = if (files.isEmpty()) View.VISIBLE else View.GONE
-        
+
     }
 
     private fun downloadFile(file: CsvFile) {
@@ -134,7 +138,7 @@ class FileListActivity : AppCompatActivity() {
                 destFile = File(mpumFolder, "$baseName ($version)$ext")
                 version++
             }
-            
+
             sourceFile.copyTo(destFile)
             LogStorageManager.logMessage("Скачано: ${destFile.name}")
             Toast.makeText(this, "${destFile.name} скачан", Toast.LENGTH_SHORT).show()

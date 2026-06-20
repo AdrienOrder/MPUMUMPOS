@@ -27,7 +27,7 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Назад"
         android:src="@android:drawable/ic_menu_revert"
-        android:tint="@color/white"
+        app:tint="@color/white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -121,6 +121,7 @@
         android:layout_height="0dp"
         android:layout_marginTop="24dp"
         android:paddingHorizontal="16dp"
+        android:importantForAccessibility="no"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

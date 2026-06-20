@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.bluetooth
 
 import android.view.LayoutInflater
 import android.view.View
@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.mobileapp.data.Device
+import com.mobileapp.bluetooth.data.Device
 
 class DeviceAdapter(
     private val onDeviceClick: (Device) -> Unit,
@@ -36,9 +36,7 @@ class DeviceAdapter(
             tvMac.text = device.macAddress
             tvCount.text = itemView.context.getString(R.string.storage_files_count, device.fileCount)
 
-            // Show/hide buttons based on device type
             if (device.id == 0L) {
-                // Imported
                 btnDelete.text = "Очистить"
                 btnDelete.visibility = View.VISIBLE
                 btnOpen.text = "Открыть"
@@ -48,9 +46,8 @@ class DeviceAdapter(
                 btnOpen.text = "Открыть"
             }
 
-            // Hide card click, use buttons instead
             itemView.setOnClickListener(null)
-            
+
             btnOpen.setOnClickListener { onDeviceClick(device) }
             btnDelete.setOnClickListener { onDeviceDelete(device) }
         }

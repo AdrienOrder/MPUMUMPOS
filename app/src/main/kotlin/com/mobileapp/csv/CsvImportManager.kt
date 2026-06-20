@@ -1,16 +1,16 @@
-package com.mobileapp.data
+package com.mobileapp.csv
 
 import android.content.Context
 import android.os.Environment
-import com.mobileapp.LogStorageManager
+import com.mobileapp.log.LogStorageManager
 import java.io.File
 
 object CsvImportManager {
-    
+
     fun getCsvFilesFromDownloads(context: Context): List<ImportFile> {
         val files = mutableListOf<ImportFile>()
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        
+
         if (downloadsDir != null && downloadsDir.exists()) {
             downloadsDir.listFiles()?.filter { it.extension.equals("csv", ignoreCase = true) || it.extension.equals("txt", ignoreCase = true) }?.forEach { file ->
                 files.add(ImportFile(
@@ -21,18 +21,18 @@ object CsvImportManager {
                 ))
             }
         }
-        
+
         LogStorageManager.logMessage("Импорт: ${files.size} CSV файлов")
         return files.sortedByDescending { it.modifiedAt }
     }
-    
+
     fun importCsvFile(context: Context, sourcePath: String, fileName: String): Boolean {
         return try {
             val destDir = File(context.getExternalFilesDir(null), "csv")
             if (!destDir.exists()) {
                 destDir.mkdirs()
             }
-            
+
             val destPath = File(destDir, fileName).absolutePath
             File(sourcePath).copyTo(File(destPath), overwrite = true)
             LogStorageManager.logMessage("Импорт: $fileName")

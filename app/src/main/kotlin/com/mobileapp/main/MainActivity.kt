@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.main
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -11,6 +11,14 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.mobileapp.bluetooth.BluetoothManager
+import com.mobileapp.bluetooth.DeviceListActivity
+import com.mobileapp.dialog.DialogManager
+import com.mobileapp.csv.DataSaveHelper
+import com.mobileapp.log.LogDisplayActivity
+import com.mobileapp.log.LogStorageManager
+import com.mobileapp.sensor.SensorActivity
+import com.mobileapp.storage.StorageActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -20,7 +28,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
 
-        // Команды для устройства
         const val CMD_SET_INTERVAL = "SET interval "
         const val CMD_SET_START = "SET start "
         const val CMD_SET_TIME = "SET time "
@@ -33,7 +40,6 @@ class MainActivity : AppCompatActivity() {
         const val CMD_DEL_SENSOR = "DEL sensor "
         const val CMD_DEL_SENSORS = "DEL sensors"
 
-        // Конвертация минут в формат ДД:ЧЧ:ММ
         fun minutesToDDHHMM(totalMinutes: Int): String {
             val days = totalMinutes / (24 * 60)
             val hours = (totalMinutes % (24 * 60)) / 60
@@ -41,7 +47,6 @@ class MainActivity : AppCompatActivity() {
             return String.format("%02d:%02d:%02d", days, hours, minutes)
         }
 
-        // Конвертация из формата ДД:ЧЧ:ММ в минуты
         fun ddHHMMToMinutes(ddHHMM: String): Int? {
             val parts = ddHHMM.split(":")
             if (parts.size == 3) {
@@ -50,7 +55,7 @@ class MainActivity : AppCompatActivity() {
                 val minutes = parts[2].toIntOrNull() ?: 0
                 return days * 24 * 60 + hours * 60 + minutes
             }
-            return ddHHMM.toIntOrNull() // null если некорректный формат
+            return ddHHMM.toIntOrNull()
         }
     }
 
@@ -84,7 +89,6 @@ class MainActivity : AppCompatActivity() {
             checkBluetoothAndOpenDeviceList()
         } else {
             LogStorageManager.logMessage("Пользователь отказал в разрешениях")
-            // Show dialog directing user to settings
             dialogManager.showPermissionsRequiredDialog(
                 onOpenSettings = {
                     shouldCheckPermissionsOnResume = true
@@ -130,11 +134,10 @@ class MainActivity : AppCompatActivity() {
             initHiddenViews()
             initManagers()
             setupUI()
-            
-            // Проверяем реальное состояние подключения
+
             val wasConnected = bluetoothManager.isConnected()
             updateUIState(wasConnected)
-            
+
             LogStorageManager.logMessage("Приложение запущено")
         } catch (e: Exception) {
             Log.e(TAG, "Ошибка в onCreate: ${e.message}", e)
@@ -155,7 +158,6 @@ class MainActivity : AppCompatActivity() {
         btnSensors = findViewById(R.id.btnSensors)
     }
 
-    // Views to hide/show
     private lateinit var tvDeviceNameLabel: TextView
     private lateinit var intervalGroup: android.view.View
     private lateinit var startTimeGroup: android.view.View
@@ -173,7 +175,6 @@ class MainActivity : AppCompatActivity() {
     private fun initManagers() {
         dialogManager = DialogManager(this)
 
-        // Используем синглтон для сохранения соединения при навигации
         if (BluetoothManager.isInstanceCreated()) {
             bluetoothManager = BluetoothManager.getExistingInstance()!!
         } else {
@@ -202,7 +203,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         LogStorageManager.setUpdateListener {
-            // Update LogActivity if needed
             LogDisplayActivity.updateLogDisplay()
         }
     }
@@ -317,7 +317,7 @@ class MainActivity : AppCompatActivity() {
                 }, 10000)
             }, 2000)
         }
-        
+
         btnSensors.setOnClickListener {
             if (!bluetoothManager.isConnected()) {
                 Toast.makeText(this, R.string.toast_connect_first, Toast.LENGTH_SHORT).show()
@@ -337,7 +337,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<ImageButton>(R.id.btnHome).setOnClickListener {
-            // Уже на главном экране
         }
 
         findViewById<ImageButton>(R.id.btnFiles).setOnClickListener {
@@ -363,16 +362,14 @@ class MainActivity : AppCompatActivity() {
             tvDeviceName.text = device?.name ?: "Неизвестно"
             btnConnect.text = getString(R.string.disconnect_device)
             setControlButtonsEnabled(true)
-            
-            // Show hidden views
+
             tvDeviceNameLabel.visibility = android.view.View.VISIBLE
             tvDeviceName.visibility = android.view.View.VISIBLE
             intervalGroup.visibility = android.view.View.VISIBLE
             startTimeGroup.visibility = android.view.View.VISIBLE
             deviceTimeGroup.visibility = android.view.View.VISIBLE
             buttonGroup.visibility = android.view.View.VISIBLE
-            
-            // Start periodic time requests every 30 seconds
+
             startTimeRequestPeriodic()
         } else {
             tvDeviceStatus.text = getString(R.string.device_not_connected)
@@ -380,39 +377,36 @@ class MainActivity : AppCompatActivity() {
             tvDeviceName.text = ""
             btnConnect.text = getString(R.string.connect_device)
             setControlButtonsEnabled(false)
-            
-            // Hide hidden views
+
             tvDeviceNameLabel.visibility = android.view.View.GONE
             tvDeviceName.visibility = android.view.View.GONE
             intervalGroup.visibility = android.view.View.GONE
             startTimeGroup.visibility = android.view.View.GONE
             deviceTimeGroup.visibility = android.view.View.GONE
             buttonGroup.visibility = android.view.View.GONE
-            
-            // Reset fields to empty (no default values needed)
+
             intervalEditText.setText("")
             startTimeEditText.setText("")
             deviceTimeText.text = ""
-            
-            // Stop periodic time requests
+
             stopTimeRequestPeriodic()
         }
     }
-    
+
     private fun startTimeRequestPeriodic() {
-        stopTimeRequestPeriodic() // Ensure no duplicate runners
+        stopTimeRequestPeriodic()
         timeRequestRunnable = object : Runnable {
             override fun run() {
                 if (bluetoothManager.isConnected()) {
                     bluetoothManager.sendCommand(CMD_GET_TIME)
                     LogStorageManager.logMessage("Запрос текущего времени с устройства (периодический)")
                 }
-                handler.postDelayed(this, 30000) // 30 seconds
+                handler.postDelayed(this, 30000)
             }
         }
         handler.postDelayed(timeRequestRunnable!!, 30000)
     }
-    
+
     private fun stopTimeRequestPeriodic() {
         timeRequestRunnable?.let {
             handler.removeCallbacks(it)
@@ -433,10 +427,10 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        val hasPermissions = permissions.all { 
-            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED 
+        val hasPermissions = permissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
-        
+
         if (hasPermissions) {
             checkBluetoothAndOpenDeviceList()
         } else {
@@ -478,9 +472,9 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Некорректный формат интервала", Toast.LENGTH_SHORT).show()
             return
         }
-        
+
         bluetoothManager.sendCommand(CMD_SET_INTERVAL + intervalMinutes)
-        
+
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_SET_START + startTime)
         }, 100)
@@ -490,7 +484,7 @@ class MainActivity : AppCompatActivity() {
         val currentTime = SimpleDateFormat("HH:mm dd.MM.yyyy", Locale.getDefault()).format(Date())
         bluetoothManager.sendCommand(CMD_SET_TIME + currentTime)
         LogStorageManager.logMessage("Время синхронизировано: $currentTime")
-        
+
         handler.postDelayed({
             bluetoothManager.sendCommand(CMD_GET_TIME)
         }, 500)
@@ -498,10 +492,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun processResponse(response: String) {
         Log.d(TAG, "Received: '$response'")
-        
+
         val timePattern = Regex("\\d{1,2}:\\d{2}(:\\d{2})?\\s+\\d{1,2}[\\.\\-]\\d{1,2}[\\.\\-]\\d{2,4}")
-        
-        // 1. Проверяем время старта (ищем время в ответе)
+
         if (response.contains("START", ignoreCase = true) || response.startsWith("S:")) {
             val timeMatch = timePattern.find(response)
             if (timeMatch != null) {
@@ -509,8 +502,7 @@ class MainActivity : AppCompatActivity() {
                 return
             }
         }
-        
-        // 2. Проверяем текущее время (ищем время в ответе)
+
         if (response.contains("CURRENT", ignoreCase = true) || response.contains("TIME", ignoreCase = true) || response.startsWith("T:")) {
             val timeMatch = timePattern.find(response)
             if (timeMatch != null) {
@@ -518,8 +510,7 @@ class MainActivity : AppCompatActivity() {
                 return
             }
         }
-        
-        // 3. Проверяем интервал
+
         if (response.contains("INTERVAL", ignoreCase = true) || response.startsWith("I:")) {
             val numberMatch = Regex("\\d+").find(response)
             if (numberMatch != null) {
@@ -533,8 +524,7 @@ class MainActivity : AppCompatActivity() {
             }
             return
         }
-        
-        // 4. Если только число - считаем интервалом
+
         if (response.matches(Regex("\\d+"))) {
             val intervalMinutes = response.toIntOrNull()
             if (intervalMinutes != null) {
@@ -542,27 +532,23 @@ class MainActivity : AppCompatActivity() {
             }
             return
         }
-        
-        // 5. Если ответ выглядит как время (без префиксов) - обновляем текущее время
+
         val timeMatch = timePattern.find(response)
         if (timeMatch != null) {
             deviceTimeText.text = timeMatch.value
             return
         }
-        
-        // 6. Поток данных с устройства (!info: / !data:)
+
         if (DataSaveHelper.processLine(response)) {
             return
         }
-        
-        // 7. OK после получения данных - завершаем и сохраняем
+
         if (response.trim().equals("OK", ignoreCase = true) && DataSaveHelper.hasData()) {
             DataSaveHelper.saveFiles(this)
             Toast.makeText(this, "Данные сохранены в хранилище", Toast.LENGTH_SHORT).show()
             return
         }
-        
-        // 8. Для всех остальных ответов - просто логируем
+
         LogStorageManager.logMessage("Ответ: '$response'")
     }
 
@@ -572,16 +558,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // logMessage is now handled by LogManager
-
     override fun onResume() {
         super.onResume()
-        
-        // Only auto-open device list if returning from settings with permissions granted
+
         if (!shouldCheckPermissionsOnResume) return
-        
+
         shouldCheckPermissionsOnResume = false
-        
+
         val hasBluetoothPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
@@ -589,9 +572,9 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED
         }
-        
+
         Log.d(TAG, "Has Bluetooth permissions: $hasBluetoothPermissions, Connected: ${bluetoothManager.isConnected()}")
-        
+
         if (hasBluetoothPermissions && !bluetoothManager.isConnected()) {
             Log.d(TAG, "Auto-opening device list because permissions are granted")
             Handler(Looper.getMainLooper()).postDelayed({
@@ -602,12 +585,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Не отключаем Bluetooth при навигации - соединение сохраняется через синглтон
     }
-    
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        // Обновляем UI при возврате на главный экран
         val wasConnected = bluetoothManager.isConnected()
         updateUIState(wasConnected)
         Log.d(TAG, "onNewIntent, wasConnected: $wasConnected")

@@ -1,4 +1,4 @@
-package com.mobileapp.data
+package com.mobileapp.bluetooth.data
 
 data class Device(
     val id: Long = 0,

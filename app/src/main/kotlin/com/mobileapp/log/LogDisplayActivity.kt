@@ -1,4 +1,4 @@
-package com.mobileapp
+package com.mobileapp.log
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -15,12 +15,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.mobileapp.main.MainActivity
+import com.mobileapp.storage.StorageActivity
 
 class LogDisplayActivity : AppCompatActivity() {
 
     companion object {
         private var instance: LogDisplayActivity? = null
-        
+
         fun updateLogDisplay() {
             instance?.runOnUiThread {
                 instance?.updateLogDisplayInternal()
@@ -34,11 +36,10 @@ class LogDisplayActivity : AppCompatActivity() {
         dialog.setOnShowListener {
             val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
             val negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-            
+
             positiveButton.setTextColor(ContextCompat.getColor(this, R.color.blue_500))
             negativeButton.setTextColor(ContextCompat.getColor(this, R.color.blue_500))
-            
-            // Get the button panel and center it
+
             val buttonPanel = positiveButton.parent as? LinearLayout
             buttonPanel?.gravity = android.view.Gravity.CENTER
             buttonPanel?.layoutParams?.width = LinearLayout.LayoutParams.MATCH_PARENT
@@ -62,7 +63,7 @@ class LogDisplayActivity : AppCompatActivity() {
                 }
                 .setNegativeButton(getString(R.string.dialog_button_cancel), null)
                 .create()
-            
+
             centerDialogButtons(dialog)
             dialog.show()
         }
@@ -72,7 +73,6 @@ class LogDisplayActivity : AppCompatActivity() {
         }
 
         findViewById<ImageButton>(R.id.btnLogs).setOnClickListener {
-            // Уже на этом экране
         }
 
         findViewById<ImageButton>(R.id.btnHome)?.setOnClickListener {

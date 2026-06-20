@@ -23,7 +23,7 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
         <TextView
             android:id="@+id/tvTitle"
@@ -42,7 +42,7 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_rotate"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
     </LinearLayout>
 
@@ -60,6 +60,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
+        android:importantForAccessibility="no"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -67,7 +68,8 @@
 
         <HorizontalScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:importantForAccessibility="no">
 
             <TableLayout
                 android:id="@+id/tableData"

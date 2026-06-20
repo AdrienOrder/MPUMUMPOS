@@ -80,7 +80,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Логи"
             android:src="@android:drawable/ic_menu_agenda"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
         <ImageButton
             android:id="@+id/btnHome"
@@ -90,7 +90,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Главная"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
         <ImageButton
             android:id="@+id/btnStorage"
@@ -100,7 +100,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Хранилище"
             android:src="@android:drawable/ic_menu_save"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
     </LinearLayout>
 
