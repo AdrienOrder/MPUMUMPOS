@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.mobileapp.csv.CsvDataParser
 import com.mobileapp.csv.CsvFileInfo
 import com.mobileapp.log.LogStorageManager
+import com.mobileapp.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

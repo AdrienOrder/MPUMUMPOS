@@ -19,6 +19,7 @@ import com.mobileapp.log.LogDisplayActivity
 import com.mobileapp.log.LogStorageManager
 import com.mobileapp.sensor.SensorActivity
 import com.mobileapp.storage.StorageActivity
+import com.mobileapp.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

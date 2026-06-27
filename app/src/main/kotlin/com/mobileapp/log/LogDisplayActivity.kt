@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.mobileapp.main.MainActivity
 import com.mobileapp.storage.StorageActivity
+import com.mobileapp.R
 
 class LogDisplayActivity : AppCompatActivity() {
 

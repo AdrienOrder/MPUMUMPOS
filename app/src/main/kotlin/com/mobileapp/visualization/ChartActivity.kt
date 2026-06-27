@@ -23,6 +23,7 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.mobileapp.csv.CsvDataParser
 import com.mobileapp.log.LogStorageManager
+import com.mobileapp.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -14,6 +14,7 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.mobileapp.R
 import com.mobileapp.log.LogStorageManager
 
 @SuppressLint("MissingPermission")

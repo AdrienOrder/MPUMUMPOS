@@ -10,6 +10,7 @@ import android.widget.EditText
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.mobileapp.R
 
 data class ParamWithBounds(
     val name: String,

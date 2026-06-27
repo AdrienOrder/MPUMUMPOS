@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.mobileapp.bluetooth.data.Device
+import com.mobileapp.R
 
 class DeviceAdapter(
     private val onDeviceClick: (Device) -> Unit,

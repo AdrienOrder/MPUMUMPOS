@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import com.mobileapp.main.MainActivity
 import com.mobileapp.bluetooth.BluetoothManager
 import com.mobileapp.log.LogStorageManager
+import com.mobileapp.R
 
 class SensorActivity : AppCompatActivity() {
 

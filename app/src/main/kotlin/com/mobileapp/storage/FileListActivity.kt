@@ -14,6 +14,7 @@ import com.mobileapp.csv.data.CsvFile
 import com.mobileapp.log.LogDisplayActivity
 import com.mobileapp.log.LogStorageManager
 import com.mobileapp.main.MainActivity
+import com.mobileapp.R
 import com.mobileapp.storage.data.StorageDatabaseManager
 import com.mobileapp.visualization.VisualizationActivity
 import java.io.File

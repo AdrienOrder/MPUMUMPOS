@@ -15,6 +15,7 @@ import com.mobileapp.log.LogDisplayActivity
 import com.mobileapp.log.LogStorageManager
 import com.mobileapp.main.MainActivity
 import com.mobileapp.storage.StorageActivity
+import com.mobileapp.R
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
